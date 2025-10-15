@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, AuthError } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -61,22 +61,7 @@ export default function LoginForm() {
 
     } catch (err) {
         const authError = err as AuthError;
-        
-        if (authError.code === 'auth/user-not-found') {
-            try {
-                const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
-                toast({
-                    title: 'Conta de demonstração criada!',
-                    description: 'Login bem-sucedido.',
-                    className: 'bg-accent text-accent-foreground',
-                });
-                handleSuccessfulLogin(newUserCredential);
-            } catch (creationError) {
-                 const creationAuthError = creationError as AuthError;
-                 setError(`Falha ao criar conta: ${creationAuthError.message}`);
-                 console.error("Creation Error:", creationError);
-            }
-        } else if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
+        if (authError.code === 'auth/user-not-found' || authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
             setError('Credenciais inválidas. Verifique seu email e senha.');
         }
         else {
