@@ -1,7 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { AuthorizationForm } from '@/components/public/authorization-form';
+import AuthorizationForm from '@/components/public/authorization-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CheckSquare } from 'lucide-react';
 
@@ -23,7 +23,7 @@ function AuthorizationPageContent() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <AuthorizationForm schoolName={schoolName} />
+                        <AuthorizationForm initialSchoolName={schoolName} />
                     </CardContent>
                 </Card>
             </div>
