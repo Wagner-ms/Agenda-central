@@ -1,6 +1,7 @@
 import LoginForm from '@/components/auth/login-form';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { CheckSquare } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   return (
@@ -17,6 +18,11 @@ export default function LoginPage() {
           <CardContent>
             <LoginForm />
           </CardContent>
+          <CardFooter className="flex justify-center">
+             <Link href="/autorizar?escola=Escola%20Exemplo" className="text-sm text-primary hover:underline">
+                Acessar formulário de autorização dos pais
+              </Link>
+          </CardFooter>
         </Card>
       </div>
     </main>
