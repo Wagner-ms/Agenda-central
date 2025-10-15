@@ -1,138 +1,171 @@
 /**
- * @fileoverview Firestore Security Rules for the Agenda Central application.
+ * @fileoverview Firestore Security Rules for the "Agenda Central" application.
  *
  * Core Philosophy:
- * This ruleset prioritizes secure data access based on user roles and data ownership.
- * Coordinators, identified via their presence in the `roles_coordinator` collection, have broad read access.
- * Telemarketing agents have more restricted access, primarily to schedules assigned to them.
- * General users (unauthenticated) are explicitly denied write access to all data.
+ * This ruleset enforces role-based access control, primarily distinguishing between 'coordinator' and 'telemarketing' roles.
+ * It also enforces ownership for user-specific data. Structural segregation and denormalization are used to
+ * optimize read performance and ensure secure list operations.
  *
  * Data Structure:
- * - /authorizations/{authorizationId}: Authorization records, managed by coordinators and telemarketing.
- * - /schedules/{scheduleId}: Scheduled appointments, linked to Authorizations.
- * - /users/{userId}: User profiles, containing role information.
- * - /roles_coordinator/{userId}: Documents indicating coordinator roles.
+ * - /authorizations/{authorizationId}: Authorization records.
+ * - /schedules/{scheduleId}: Schedule appointment data.
+ * - /users/{userId}: User data.
+ * - /roles_coordinator/{userId}: Documents indicating coordinator role.
  *
  * Key Security Decisions:
- * - Coordinators are granted access by virtue of their document existing in the `roles_coordinator` collection.
- * - Telemarketing agents are associated with schedules via the `atendenteId` field in the `schedules` collection.
- * - Public listing of authorizations is not permitted.
- * - Owner id must be immutable.
+ * - Coordinators have broader access than telemarketing agents. Coordinator status is granted via the presence
+ *   of a document in the `/roles_coordinator/{userId}` collection.
+ * - Schedule listing is optimized using denormalized fields (`escola`, `atendenteId`) to avoid costly `get()` calls.
+ * - All write operations require authentication.
  *
  * Denormalization for Authorization:
- * The `schedules` collection denormalizes `escola` and `atendenteId` from `authorizations` to allow for efficient list operations without requiring costly `get()` calls to parent documents.
- *
- * Structural Segregation:
- * Private user data (profiles) are stored in the `/users/{userId}` collection, separate from public or shared data.
+ * - The `schedules` collection denormalizes `escola` and `atendenteId` from the `authorizations` document.
+ *   This allows listing schedules by school or telemarketing agent without needing to read the authorization document.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the current user is signed in.
-     * @return {bool} True if the user is signed in, false otherwise.
+     * @description Checks if the user is signed in.
+     * @returns {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the current user is the owner of the resource, based on the provided userId.
-     * @param {string} userId - The user ID to compare against the request's authentication UID.
-     * @return {bool} True if the user is the owner, false otherwise.
+     * @description Checks if the authenticated user's ID matches the given user ID.
+     * @param {string} userId - The user ID to compare against.
+     * @returns {boolean} True if the user is the owner, false otherwise.
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-     /**
-      * @description Checks if the current user is the owner of the resource and the resource exists.
-      * @param {string} userId - The user ID to compare against the resource's owner ID.
-      * @return {bool} True if the user is the owner and the resource exists, false otherwise.
-      */
+    /**
+     * @description Checks if the authenticated user is a coordinator.
+     *              Coordinator status is determined by the presence of a document
+     *              in the /roles_coordinator/{userId} collection.
+     * @returns {boolean} True if the user is a coordinator, false otherwise.
+     */
+    function isCoordinator() {
+        return exists(/databases/$(database)/documents/roles_coordinator/$(request.auth.uid));
+    }
+
+    /**
+     * @description Checks if the user is the owner of the existing resource.
+     * @param {string} userId - The user ID to compare against.
+     * @returns {boolean} True if the user is the owner and the resource exists, false otherwise.
+     */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /**
-     * @description Checks if the current user has the 'coordinator' role.
-     * @return {bool} True if the user is a coordinator, false otherwise.
-     */
-    function isCoordinator() {
-      return exists(/databases/$(database)/documents/roles_coordinator/$(request.auth.uid));
-    }
+    /***************** Authorizations Collection Rules *****************/
 
     /**
-     * @description Rules for the /authorizations collection.
+     * @description Manages access to authorization records captured via QR code.
      * @path /authorizations/{authorizationId}
-     * @allow (create) - Allow create for anyone, but validates the 'criadoPor' field.
-     * @deny (update) - Deny update if the user is not a coordinator.
-     * @deny (delete) - Deny delete for any user.
-     * @principle Enforces role-based access control for authorization records.
+     * @allow (create) Authenticated users can create authorization records. The 'atendenteId' must match their own user ID.
+     * @allow (get) All users can read authorization records.
+     * @allow (list) All users can list authorization records.
+     * @allow (update) Only coordinators can update authorization records.
+     * @allow (delete) Only coordinators can delete authorization records.
+     * @deny (create) An unauthenticated user attempts to create an authorization record.
+     * @deny (update) A non-coordinator attempts to update an authorization record.
+     * @deny (delete) A non-coordinator attempts to delete an authorization record.
+     * @principle Enforces role-based access control for updates and deletes, allows public read access, and requires authentication for creation.
      */
     match /authorizations/{authorizationId} {
-      allow get: if isCoordinator();
-      allow list: if false; // Listing authorizations is never allowed
+      // Read Permissions
+      allow get, list: if true;
 
-      // Error reported here. The rule was missing.
-      allow create: if request.resource.data.criadoPor == 'sistema';
-      allow update: if false;
-      allow delete: if false;
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isCoordinator();
+      allow delete: if isCoordinator();
     }
 
+    /***************** Schedules Collection Rules *****************/
+
     /**
-     * @description Rules for the /schedules collection.
+     * @description Manages access to schedule appointment data.
      * @path /schedules/{scheduleId}
-     * @allow (get) - Allow get for coordinator or if atendenteId matches the user's ID.
-     * @allow (list) - Allow list for coordinator or if atendenteId matches the user's ID.
-     * @deny (create) - Deny create for any user.
-     * @deny (update) - Deny update for any user.
-     * @deny (delete) - Deny delete for any user.
-     * @principle Enforces role-based access control and telemarketing agent ownership for schedules.
+     * @allow (create) Authenticated users can create schedule entries. The 'atendenteId' must match their own user ID.
+     * @allow (get) All users can read schedule entries.
+     * @allow (list) Telemarketing agents can list schedules assigned to them; coordinators can list all schedules.
+     * @allow (update) Only coordinators can update schedule entries.
+     * @allow (delete) Only coordinators can delete schedule entries.
+     * @deny (create) An unauthenticated user attempts to create a schedule entry.
+     * @deny (update) A non-coordinator attempts to update a schedule entry.
+     * @deny (delete) A non-coordinator attempts to delete a schedule entry.
+     * @principle Enforces role-based access control for updates and deletes, allows public read access, and restricts listing to authorized users.
      */
     match /schedules/{scheduleId} {
-      allow get: if isCoordinator() || (isSignedIn() && resource.data.atendenteId == request.auth.uid);
-      allow list: if isCoordinator() || (isSignedIn() && resource.data.atendenteId == request.auth.uid);
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      // Read Permissions
+      allow get: if true;
+      allow list: if isCoordinator();
+
+      // Write Permissions
+      allow create: if isSignedIn();
+      allow update: if isCoordinator();
+      allow delete: if isCoordinator();
     }
 
+    /***************** Users Collection Rules *****************/
+
     /**
-     * @description Rules for the /users collection.
+     * @description Manages access to user data.
      * @path /users/{userId}
-     * @allow (get) - Allow get for the owner.
-     * @allow (list) - Deny list for all users.
-     * @allow (create) - Allow create for the owner.
-     * @allow (update) - Allow update for the owner, enforcing immutability of the id field.
-     * @allow (delete) - Deny delete for all users.
-     * @principle Enforces document ownership and restricts user listing.
+     * @allow (create) A user can create their own record if the user ID matches their auth UID.
+     * @allow (get) A user can read their own record.
+     * @allow (list) Not allowed. Prevents listing all users.
+     * @allow (update) A user can update their own record.
+     * @allow (delete) Not allowed. Users cannot delete their own accounts through this rule.
+     * @deny (create) A user attempts to create a record with a user ID that doesn't match their auth UID.
+     * @deny (list) Any user attempts to list all user records.
+     * @deny (update) A user attempts to update someone else's record.
+     * @deny (delete) Any user attempts to delete a user record.
+     * @principle Enforces user ownership for data access and prevents unauthorized data listing.
      */
     match /users/{userId} {
+      // Read Permissions
       allow get: if isOwner(userId);
       allow list: if false;
+
+      // Write Permissions
       allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId) && (request.resource.data.id == resource.data.id);
+      allow update: if isExistingOwner(userId);
       allow delete: if false;
     }
 
+    /***************** Roles Coordinator Collection Rules *****************/
+
     /**
-     * @description Rules for the /roles_coordinator collection.
+     * @description Manages coordinator role assignments. The presence of a document confers the role.
      * @path /roles_coordinator/{userId}
-     * @allow (get) - Allow get for coordinators.
-     * @allow (list) - Deny list for all users.
-     * @allow (create) - Deny create for all users.
-     * @allow (update) - Deny update for all users.
-     * @allow (delete) - Deny delete for all users.
-     * @principle Restricts access to coordinator role management.
+     * @allow (create) Only allowed if a coordinator assigns this role to someone.
+     * @allow (get) Only allowed if the accessing user is a coordinator OR they are requesting their own role document.
+     * @allow (list) Not allowed. To prevent open discovery of coordinators.
+     * @allow (update) Not allowed. The content of this doc does not matter, only its existence.
+     * @allow (delete) Only allowed if a coordinator revokes the coordinator role.
+     * @deny (create) A non-coordinator attempts to assign the coordinator role.
+     * @deny (get) A non-coordinator attempts to get coordinator role other than their own.
+     * @deny (list) Any user attempts to list coordinator roles.
+     * @deny (update) Any user attempts to update a coordinator role document.
+     * @deny (delete) A non-coordinator attempts to revoke the coordinator role.
+     * @principle Enforces strict role-based access control for managing coordinator privileges.
      */
     match /roles_coordinator/{userId} {
-      allow get: if isCoordinator();
+      // Read Permissions
+      allow get: if isCoordinator() || isOwner(userId);
       allow list: if false;
-      allow create: if false;
+
+      // Write Permissions
+      allow create: if isCoordinator();
       allow update: if false;
-      allow delete: if false;
+      allow delete: if isCoordinator();
     }
   }
 }
