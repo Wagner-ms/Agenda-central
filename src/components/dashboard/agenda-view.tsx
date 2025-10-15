@@ -14,7 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { ArrowLeft, ArrowRight, CheckCircle, XCircle, Clock, RefreshCw, MoreVertical } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 
-const themedStatusConfig: { [key in Status]?: { colorClass: string, icon: React.ElementType, label: string } } = {
+const themedStatusConfig: { [key in Status]?: { colorClass: string; icon: React.ElementType; label: string } } = {
     agendado: { colorClass: 'text-primary', icon: Clock, label: 'Agendado' },
     compareceu: { colorClass: 'text-[hsl(var(--accent))]', icon: CheckCircle, label: 'Compareceu' },
     nao_compareceu: { colorClass: 'text-destructive', icon: XCircle, label: 'Não Compareceu' },
@@ -45,6 +45,7 @@ function EventCard({ event }: { event: Authorization }) {
   };
 
   const config = themedStatusConfig[event.status];
+  const IconComponent = config?.icon;
 
   return (
     <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md">
@@ -62,16 +63,20 @@ function EventCard({ event }: { event: Authorization }) {
           <DropdownMenuContent align="end">
             {Object.keys(themedStatusConfig)
               .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
-              .map((statusKey) => (
-                <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
-                  {themedStatusConfig[statusKey as Status]?.icon && (
-                    <themedStatusConfig[statusKey as Status]!.icon
-                      className={cn('mr-2 h-4 w-4', themedStatusConfig[statusKey as Status]?.colorClass)}
-                    />
-                  )}
-                  <span>{themedStatusConfig[statusKey as Status]?.label}</span>
-                </DropdownMenuItem>
-              ))}
+              .map((statusKey) => {
+                const menuItemConfig = themedStatusConfig[statusKey as Status];
+                const MenuItemIcon = menuItemConfig?.icon;
+                return (
+                  <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
+                    {MenuItemIcon && (
+                      <MenuItemIcon
+                        className={cn('mr-2 h-4 w-4', menuItemConfig?.colorClass)}
+                      />
+                    )}
+                    <span>{menuItemConfig?.label}</span>
+                  </DropdownMenuItem>
+                );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -79,9 +84,9 @@ function EventCard({ event }: { event: Authorization }) {
         <p className="truncate">{event.escola}</p>
       </CardContent>
       <CardFooter className="p-2 pt-0">
-        {config && (
+        {config && IconComponent && (
           <div className={cn('flex items-center text-xs gap-1.5 font-medium', config.colorClass)}>
-            <config.icon className="h-3 w-3" />
+            <IconComponent className="h-3 w-3" />
             <span>{config.label}</span>
           </div>
         )}
