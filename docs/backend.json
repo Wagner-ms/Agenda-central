@@ -1,0 +1,230 @@
+{
+  "entities": {
+    "Authorization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Authorization",
+      "type": "object",
+      "description": "Represents an authorization record captured via QR code, managed through the coordinator and telemarketing workflows.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Authorization entity."
+        },
+        "nomeAluno": {
+          "type": "string",
+          "description": "Name of the student."
+        },
+        "idade": {
+          "type": "number",
+          "description": "Age of the student."
+        },
+        "serie": {
+          "type": "string",
+          "description": "Grade or series of the student."
+        },
+        "turno": {
+          "type": "string",
+          "description": "Shift of the student (e.g., morning, afternoon)."
+        },
+        "escola": {
+          "type": "string",
+          "description": "School of the student."
+        },
+        "nomeResponsavel": {
+          "type": "string",
+          "description": "Name of the responsible parent or guardian."
+        },
+        "telefone": {
+          "type": "string",
+          "description": "Phone number of the responsible parent or guardian."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the authorization (e.g., pending, released, scheduled, attended, no_show)."
+        },
+        "dataCadastro": {
+          "type": "string",
+          "description": "Date when the authorization was registered.",
+          "format": "date-time"
+        },
+        "dataLiberacao": {
+          "type": "string",
+          "description": "Date when the authorization was released by the coordinator.",
+          "format": "date-time"
+        },
+        "dataAgendamento": {
+          "type": "string",
+          "description": "Date of the scheduled appointment.",
+          "format": "date-time"
+        },
+        "horaAgendamento": {
+          "type": "string",
+          "description": "Time of the scheduled appointment."
+        },
+        "observacoes": {
+          "type": "string",
+          "description": "Observations or notes regarding the authorization or appointment."
+        },
+        "atendenteId": {
+          "type": "string",
+          "description": "Reference to the User entity representing the telemarketing agent who scheduled the appointment. (Relationship: User 1:N Authorization)"
+        },
+        "criadoPor": {
+          "type": "string",
+          "description": "Indicates whether the record was created by coordination or telemarketing."
+        },
+        "atualizadoEm": {
+          "type": "string",
+          "description": "Date and time when the record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Schedule": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Schedule",
+      "type": "object",
+      "description": "Represents a scheduled appointment in the shared agenda.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Schedule entity."
+        },
+        "alunoId": {
+          "type": "string",
+          "description": "Reference to the Authorization entity. (Relationship: Authorization 1:N Schedule)"
+        },
+        "data": {
+          "type": "string",
+          "description": "Date of the scheduled appointment.",
+          "format": "date-time"
+        },
+        "hora": {
+          "type": "string",
+          "description": "Time of the scheduled appointment."
+        },
+        "escola": {
+          "type": "string",
+          "description": "School associated with the scheduled appointment."
+        },
+        "atendenteId": {
+          "type": "string",
+          "description": "Reference to the User entity representing the telemarketing agent responsible for the appointment. (Relationship: User 1:N Schedule)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the appointment (e.g., confirmed, rescheduled, canceled)."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the system, either a coordinator or a telemarketing agent.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user (e.g., coordinator, telemarketing)."
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/authorizations/{authorizationId}",
+        "definition": {
+          "entityName": "Authorization",
+          "schema": {
+            "$ref": "#/backend/entities/Authorization"
+          },
+          "description": "Stores authorization data captured via QR code. Status changes drive the workflow. Includes fields for student, responsible party, scheduling, and telemarketing agent.",
+          "params": [
+            {
+              "name": "authorizationId",
+              "description": "Unique identifier for the authorization record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/schedules/{scheduleId}",
+        "definition": {
+          "entityName": "Schedule",
+          "schema": {
+            "$ref": "#/backend/entities/Schedule"
+          },
+          "description": "Stores schedule appointment data. Includes denormalized 'escola' and 'atendenteId' from Authorization to enable authorization independence for list operations. Includes a reference to the originating Authorization record.",
+          "params": [
+            {
+              "name": "scheduleId",
+              "description": "Unique identifier for the schedule record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data, including role (coordinator, telemarketing).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_coordinator/{userId}",
+        "definition": {
+          "entityName": "roles_coordinator",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection grant the 'coordinator' role to the user id. Presence of the document confers the role; the document contents are ignored.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user who is a coordinator."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support the \"Agenda Central\" application, focusing on a streamlined workflow from QR code enrollment to appointment attendance. The structure emphasizes authorization independence, clarity, and scalability.\n\n**Authorization Independence:**\nAuthorization independence is achieved through denormalization. Specifically, for the `schedules` collection, the `escola` (school) and `atendenteId` fields are copied from the related `authorizations` document. This allows for secure listing of schedules based on these attributes without requiring `get()` calls to parent documents, which would violate atomicity.\n\n**QAPs (Rules are not Filters):**\nThe structure supports secure `list` operations through structural segregation and the membership map pattern (although a membership map is not directly used in this version). The separation of `authorizations` and `schedules` allows for specific security rules tailored to each entity. For example, telemarketing agents can only list `schedules` where `atendenteId` matches their user ID. Coordinators can have broader access to list all `schedules`. The `roles_coordinator` collection enables global role-based access control. Using existence over content, we grant coordinator role access.\n\nThe `authorizations` collection stores the core data captured during enrollment. The `schedules` collection stores appointment information. The `users` collection holds user data including their roles (coordinator, telemarketing).  The `roles_coordinator` collection allows for an easy way to determine if a user has coordinator privileges.\n\nThis structure facilitates the core features: QR Code Enrollment, Coordinator Panel, Telemarketing Interface, Shared Interactive Calendar, Attendance Tracking, PDF Generation, and Report Generation.\n\n**Further Considerations:**\n\n*   Consider adding indexes to the `authorizations` collection on the `status` and `atendenteId` fields to optimize queries for the coordinator and telemarketing panels.\n*   Implement server-side functions (Cloud Functions) to enforce data integrity and automate tasks such as updating the schedule when an authorization status changes to \"agendado.\""
+  }
+}
