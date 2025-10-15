@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -51,16 +51,38 @@ export default function LoginForm() {
         className: 'bg-accent text-accent-foreground',
       });
       
-      // Redirect based on the logged-in user's email
       if (userCredential.user.email === coordinatorCredentials.email) {
         router.push('/dashboard/autorizacoes');
       } else {
         router.push('/dashboard/agendamento');
       }
 
-    } catch (err: any) {
-      setError('Credenciais inválidas. Verifique seu email e senha.');
-      console.error(err);
+    } catch (err) {
+        const authError = err as AuthError;
+        // If user does not exist, create it and then sign in.
+        if (authError.code === 'auth/user-not-found') {
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // Now, try to sign in again
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                 toast({
+                    title: 'Conta de demonstração criada!',
+                    description: 'Login bem-sucedido.',
+                    className: 'bg-accent text-accent-foreground',
+                });
+                if (userCredential.user.email === coordinatorCredentials.email) {
+                    router.push('/dashboard/autorizacoes');
+                } else {
+                    router.push('/dashboard/agendamento');
+                }
+            } catch (creationError) {
+                 setError('Falha ao criar conta de demonstração.');
+                 console.error(creationError);
+            }
+        } else {
+            setError('Credenciais inválidas. Verifique seu email e senha.');
+            console.error(err);
+        }
     } finally {
       setIsLoading(false);
     }
