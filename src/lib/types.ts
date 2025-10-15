@@ -7,12 +7,12 @@ export interface Authorization {
   nomeAluno: string;
   idade: number;
   serie: string;
-  turno: 'Manhã' | 'Tarde' | string; // Allow string for form flexibility
+  turno: 'Manhã' | 'Tarde' | string;
   escola: string;
   nomeResponsavel: string;
   telefone: string;
   status: Status;
-  dataCadastro: Timestamp | string; // Can be a server timestamp or ISO string
+  dataCadastro: Timestamp | string;
   dataLiberacao?: Timestamp | string;
   dataAgendamento?: Timestamp | string;
   horaAgendamento?: string; // HH:mm
@@ -20,4 +20,5 @@ export interface Authorization {
   atendenteId?: string; // Telemarketing user ID
   criadoPor: 'coordenacao' | 'telemarketing' | 'sistema';
   atualizadoEm: Timestamp | string;
+  consent: boolean;
 }

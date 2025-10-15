@@ -23,10 +23,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { Send } from 'lucide-react';
+import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
 
 export function AuthorizationsTable({ data }: { data: Authorization[] }) {
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
     if (checked === true) {
@@ -45,16 +48,34 @@ export function AuthorizationsTable({ data }: { data: Authorization[] }) {
   };
 
   const handleRelease = () => {
-    // In a real app, this would be a server action to update Firestore
-    console.log('Releasing authorizations:', selectedRows);
+    if (!firestore) {
+        toast({ title: "Erro", description: "O serviço de banco de dados não está disponível.", variant: "destructive" });
+        return;
+    }
+    
+    selectedRows.forEach(id => {
+      const docRef = doc(firestore, 'authorizations', id);
+      updateDocumentNonBlocking(docRef, {
+          status: 'liberado',
+          dataLiberacao: serverTimestamp(),
+          atualizadoEm: serverTimestamp()
+      });
+    });
+
     toast({
       title: 'Sucesso!',
       description: `${selectedRows.length} autorizaç${selectedRows.length > 1 ? 'ões' : 'ão'} liberada${selectedRows.length > 1 ? 's' : 'a'}.`,
       className: 'bg-accent text-accent-foreground',
     });
     setSelectedRows([]);
-    // Here you would typically re-fetch or optimistically update the UI
   };
+  
+  const formatDateFromTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  };
+
 
   return (
     <Card>
@@ -103,7 +124,7 @@ export function AuthorizationsTable({ data }: { data: Authorization[] }) {
                     <TableCell className="text-muted-foreground hidden md:table-cell">{auth.escola}</TableCell>
                     <TableCell>{auth.nomeResponsavel}</TableCell>
                     <TableCell className="hidden sm:table-cell">
-                    {format(new Date(auth.dataCadastro), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {formatDateFromTimestamp(auth.dataCadastro)}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                     <Badge variant="secondary">{auth.status}</Badge>
