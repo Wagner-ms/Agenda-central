@@ -25,6 +25,8 @@ export function ReportGenerator() {
       schoolName: reportType === 'school' ? filterValue : undefined,
       agentId: reportType === 'agent' ? filterValue : undefined,
     };
+    // Note: We are not passing 'authorizations' here.
+    // The flow will fetch the data from Firestore itself.
     run(input);
   };
 
