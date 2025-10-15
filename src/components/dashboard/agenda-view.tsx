@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
 const themedStatusConfig: { [key in Status]?: { colorClass: string; icon: React.ElementType; label: string } } = {
     agendado: { colorClass: 'text-primary', icon: Clock, label: 'Agendado' },
@@ -34,9 +36,19 @@ const themedStatusConfig: { [key in Status]?: { colorClass: string; icon: React.
 
 function EventCard({ event }: { event: Authorization }) {
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const handleStatusChange = (newStatus: Status) => {
-    // In a real app, this would be a server action
+    if (!firestore) {
+      toast({ title: "Erro", description: "O serviço de banco de dados não está disponível.", variant: "destructive" });
+      return;
+    }
+    const docRef = doc(firestore, 'authorizations', event.id);
+    updateDocumentNonBlocking(docRef, {
+      status: newStatus,
+      atualizadoEm: serverTimestamp()
+    });
+
     toast({
       title: 'Status Atualizado',
       description: `${event.nomeAluno} agora está como "${themedStatusConfig[newStatus]?.label}".`,
@@ -46,6 +58,18 @@ function EventCard({ event }: { event: Authorization }) {
 
   const config = themedStatusConfig[event.status];
   const IconComponent = config?.icon;
+  
+  const getEventDate = () => {
+    if (!event.dataAgendamento) return null;
+    // Firestore Timestamps need to be converted to JS Date objects
+    if (typeof event.dataAgendamento === 'object' && 'toDate' in event.dataAgendamento) {
+      return event.dataAgendamento.toDate();
+    }
+    // Handle string dates (less ideal, but good for robustness)
+    return new Date(event.dataAgendamento);
+  };
+
+  const eventDate = getEventDate();
 
   return (
     <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md">
@@ -104,6 +128,15 @@ export function AgendaView({ events }: { events: Authorization[] }) {
   const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
   const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
   const today = () => setCurrentDate(new Date());
+  
+  const getEventDate = (event: Authorization) => {
+    if (!event.dataAgendamento) return null;
+    if (typeof event.dataAgendamento === 'object' && 'toDate' in event.dataAgendamento) {
+      return event.dataAgendamento.toDate();
+    }
+    return new Date(event.dataAgendamento);
+  };
+
 
   return (
     <Card>
@@ -129,9 +162,11 @@ export function AgendaView({ events }: { events: Authorization[] }) {
                   </p>
               </div>
               <div className="min-h-[200px] space-y-2">
-                {events.filter(
-                    (e) => e.dataAgendamento && isSameDay(new Date(e.dataAgendamento), day)
-                ).sort((a, b) => (a.horaAgendamento || '').localeCompare(b.horaAgendamento || ''))
+                {events.filter((e) => {
+                    const eventDate = getEventDate(e);
+                    return eventDate && isSameDay(eventDate, day);
+                  })
+                .sort((a, b) => (a.horaAgendamento || '').localeCompare(b.horaAgendamento || ''))
                 .map((event) => <EventCard key={event.id} event={event} />)}
               </div>
             </div>
