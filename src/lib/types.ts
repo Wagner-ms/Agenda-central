@@ -1,6 +1,6 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type Status = "pendente" | "liberado" | "agendado" | "compareceu" | "nao_compareceu" | "remarcado";
+export type Status = "pendente" | "liberado" | "agendado" | "compareceu" | "nao_compareceu" | "remarcado" | "tel_incorreto" | "nao_interessado";
 
 export interface Authorization {
   id: string;

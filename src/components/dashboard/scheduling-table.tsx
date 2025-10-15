@@ -14,10 +14,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { Authorization } from '@/lib/types';
+import type { Authorization, Status } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Phone } from 'lucide-react';
+import { Calendar as CalendarIcon, Phone, MoreHorizontal, AlertCircle, XCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 const scheduleSchema = z.object({
   dataAgendamento: z.date({
@@ -49,10 +50,33 @@ const scheduleSchema = z.object({
 
 type ScheduleFormValues = z.infer<typeof scheduleSchema>;
 
-function ScheduleDialog({ authorization }: { authorization: Authorization }) {
-  const [open, setOpen] = React.useState(false);
+function ActionsMenu({ authorization }: { authorization: Authorization }) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+
+  const handleStatusUpdate = (status: Status, successMessage: string) => {
+    if (!firestore) {
+      toast({
+        title: 'Erro de Conexão',
+        description: 'Não foi possível conectar ao banco de dados.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const docRef = doc(firestore, 'authorizations', authorization.id);
+    updateDocumentNonBlocking(docRef, {
+      status: status,
+      atendenteId: 'tele_01', // Placeholder for real user ID
+      atualizadoEm: serverTimestamp(),
+    });
+
+    toast({
+      title: 'Status Atualizado!',
+      description: `${authorization.nomeAluno}: ${successMessage}`,
+      className: 'bg-accent text-accent-foreground',
+    });
+  }
 
   const form = useForm<ScheduleFormValues>({
     resolver: zodResolver(scheduleSchema),
@@ -62,7 +86,7 @@ function ScheduleDialog({ authorization }: { authorization: Authorization }) {
     },
   });
 
-  function onSubmit(values: ScheduleFormValues) {
+  function onScheduleSubmit(values: ScheduleFormValues) {
     if (!firestore) {
       toast({
         title: 'Erro de Conexão',
@@ -87,17 +111,38 @@ function ScheduleDialog({ authorization }: { authorization: Authorization }) {
       description: `Visita de ${authorization.nomeAluno} agendada com sucesso.`,
       className: 'bg-accent text-accent-foreground',
     });
-    setOpen(false);
+    setIsDialogOpen(false);
     form.reset();
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Phone className="mr-2 h-4 w-4" /> Agendar
-        </Button>
-      </DialogTrigger>
+     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">Ações</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+           <DialogTrigger asChild>
+              <DropdownMenuItem>
+                <Phone className="mr-2 h-4 w-4" />
+                Agendar
+              </DropdownMenuItem>
+            </DialogTrigger>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => handleStatusUpdate('tel_incorreto', 'marcado como telefone incorreto.')}>
+            <AlertCircle className="mr-2 h-4 w-4" />
+            Telefone Incorreto
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleStatusUpdate('nao_interessado', 'marcado como não interessado.')}>
+            <XCircle className="mr-2 h-4 w-4" />
+            Não Interessado
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Agendar visita para {authorization.nomeAluno}</DialogTitle>
@@ -106,7 +151,7 @@ function ScheduleDialog({ authorization }: { authorization: Authorization }) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onScheduleSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="dataAgendamento"
@@ -189,6 +234,7 @@ function ScheduleDialog({ authorization }: { authorization: Authorization }) {
   );
 }
 
+
 export function SchedulingTable({ data }: { data: Authorization[] }) {
   const formatDateFromTimestamp = (timestamp: any) => {
     if (!timestamp) return 'N/A';
@@ -228,7 +274,7 @@ export function SchedulingTable({ data }: { data: Authorization[] }) {
                     </TableCell>
                     <TableCell><Badge variant="outline" className="border-primary/50 text-primary">{auth.status}</Badge></TableCell>
                     <TableCell className="text-right">
-                    <ScheduleDialog authorization={auth} />
+                      <ActionsMenu authorization={auth} />
                     </TableCell>
                 </TableRow>
                 )) : (
