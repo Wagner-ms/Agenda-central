@@ -3,14 +3,13 @@
 import { useCollection } from '@/firebase';
 import { AuthorizationsTable } from '@/components/dashboard/authorizations-table';
 import { collection, query, where } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { useMemo } from 'react';
+import { useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AuthorizationsPage() {
   const firestore = useFirestore();
 
-  const authorizationsQuery = useMemo(() => {
+  const authorizationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'authorizations'), where('status', '==', 'pendente'));
   }, [firestore]);
