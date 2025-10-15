@@ -31,12 +31,11 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    // Adicionado para corrigir o erro 'Module not found: Can't resolve 'async_hooks''
     if (!isServer) {
-        config.resolve.fallback = {
-            ...config.resolve.fallback,
-            async_hooks: false,
-        };
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        async_hooks: false,
+      };
     }
 
     return config;
