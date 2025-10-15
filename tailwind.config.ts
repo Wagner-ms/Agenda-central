@@ -13,6 +13,7 @@ export default {
         body: ['PT Sans', 'sans-serif'],
         headline: ['PT Sans', 'sans-serif'],
         code: ['Source Code Pro', 'monospace'],
+        form: ['Poppins', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
