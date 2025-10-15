@@ -1,5 +1,8 @@
 'use client';
 import * as React from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Table,
   TableBody,
@@ -23,6 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -31,29 +35,61 @@ import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+
+const scheduleSchema = z.object({
+  dataAgendamento: z.date({
+    required_error: 'A data do agendamento é obrigatória.',
+  }),
+  horaAgendamento: z.string().min(1, { message: 'A hora do agendamento é obrigatória.' }),
+  observacoes: z.string().optional(),
+});
+
+type ScheduleFormValues = z.infer<typeof scheduleSchema>;
 
 function ScheduleDialog({ authorization }: { authorization: Authorization }) {
   const [open, setOpen] = React.useState(false);
-  const [date, setDate] = React.useState<Date>();
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  const handleSchedule = () => {
-    // In a real app, this would be a server action to update Firestore
-    if (!date) {
-        toast({
-            title: 'Erro',
-            description: 'Por favor, selecione uma data para o agendamento.',
-            variant: 'destructive',
-        });
-        return;
+  const form = useForm<ScheduleFormValues>({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: {
+      horaAgendamento: '',
+      observacoes: '',
+    },
+  });
+
+  function onSubmit(values: ScheduleFormValues) {
+    if (!firestore) {
+      toast({
+        title: 'Erro de Conexão',
+        description: 'Não foi possível conectar ao banco de dados.',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    const docRef = doc(firestore, 'authorizations', authorization.id);
+    updateDocumentNonBlocking(docRef, {
+      status: 'agendado',
+      dataAgendamento: values.dataAgendamento,
+      horaAgendamento: values.horaAgendamento,
+      observacoes: values.observacoes,
+      atendenteId: 'tele_01', // Placeholder for real user ID
+      atualizadoEm: serverTimestamp(),
+    });
+
     toast({
       title: 'Agendamento realizado!',
       description: `Visita de ${authorization.nomeAluno} agendada com sucesso.`,
       className: 'bg-accent text-accent-foreground',
     });
     setOpen(false);
-  };
+    form.reset();
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -69,51 +105,97 @@ function ScheduleDialog({ authorization }: { authorization: Authorization }) {
             Responsável: {authorization.nomeResponsavel} - {authorization.telefone}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="date" className="text-right">Data</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal col-span-3",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time" className="text-right">Hora</Label>
-            <Input id="time" type="time" className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="notes" className="text-right">Observações</Label>
-            <Textarea id="notes" className="col-span-3" placeholder="Ex: Confirmou presença, virá com a mãe..." />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit" onClick={handleSchedule}>Salvar agendamento</Button>
-        </DialogFooter>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <FormField
+              control={form.control}
+              name="dataAgendamento"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-4">
+                  <FormLabel className="text-right">Data</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-[240px] pl-3 text-left font-normal col-span-3',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: ptBR })
+                          ) : (
+                            <span>Escolha uma data</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage className="col-span-4 pl-[25%]" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="horaAgendamento"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-4">
+                  <FormLabel className="text-right">Hora</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="time" className="col-span-3" />
+                  </FormControl>
+                  <FormMessage className="col-span-4 pl-[25%]" />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="observacoes"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-4 items-center gap-4">
+                  <FormLabel className="text-right">Observações</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      className="col-span-3"
+                      placeholder="Ex: Confirmou presença, virá com a mãe..."
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+               <DialogClose asChild>
+                <Button type="button" variant="ghost">Cancelar</Button>
+              </DialogClose>
+              <Button type="submit">Salvar agendamento</Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
 }
 
 export function SchedulingTable({ data }: { data: Authorization[] }) {
+  const formatDateFromTimestamp = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  };
+  
   return (
     <Card>
       <CardHeader>
@@ -129,6 +211,7 @@ export function SchedulingTable({ data }: { data: Authorization[] }) {
                 <TableHead className="hidden md:table-cell">Escola</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead className="hidden sm:table-cell">Telefone</TableHead>
+                <TableHead className="hidden sm:table-cell">Liberado Em</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
@@ -140,6 +223,9 @@ export function SchedulingTable({ data }: { data: Authorization[] }) {
                     <TableCell className="text-muted-foreground hidden md:table-cell">{auth.escola}</TableCell>
                     <TableCell>{auth.nomeResponsavel}</TableCell>
                     <TableCell className="hidden sm:table-cell">{auth.telefone}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {formatDateFromTimestamp(auth.dataLiberacao)}
+                    </TableCell>
                     <TableCell><Badge variant="outline" className="border-primary/50 text-primary">{auth.status}</Badge></TableCell>
                     <TableCell className="text-right">
                     <ScheduleDialog authorization={auth} />
@@ -147,7 +233,7 @@ export function SchedulingTable({ data }: { data: Authorization[] }) {
                 </TableRow>
                 )) : (
                 <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                     Nenhum lead liberado no momento.
                     </TableCell>
                 </TableRow>
