@@ -1,3 +1,5 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type Status = "pendente" | "liberado" | "agendado" | "compareceu" | "nao_compareceu" | "remarcado";
 
 export interface Authorization {
@@ -5,17 +7,17 @@ export interface Authorization {
   nomeAluno: string;
   idade: number;
   serie: string;
-  turno: 'Manhã' | 'Tarde';
+  turno: 'Manhã' | 'Tarde' | string; // Allow string for form flexibility
   escola: string;
   nomeResponsavel: string;
   telefone: string;
   status: Status;
-  dataCadastro: string; // ISO date string
-  dataLiberacao?: string; // ISO date string
-  dataAgendamento?: string; // ISO date string
+  dataCadastro: Timestamp | string; // Can be a server timestamp or ISO string
+  dataLiberacao?: Timestamp | string;
+  dataAgendamento?: Timestamp | string;
   horaAgendamento?: string; // HH:mm
   observacoes?: string;
   atendenteId?: string; // Telemarketing user ID
   criadoPor: 'coordenacao' | 'telemarketing' | 'sistema';
-  atualizadoEm: string; // ISO date string
+  atualizadoEm: Timestamp | string;
 }
