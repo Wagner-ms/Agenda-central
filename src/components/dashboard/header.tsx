@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import { useAuth, useUser } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard/autorizacoes', icon: UserCheck, label: 'Autorizações', roles: ['coordinator'] },
@@ -26,9 +27,19 @@ const navItems = [
 
 export function DashboardHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+  const { user } = useUser();
+
+  const handleLogout = async () => {
+    if (auth) {
+      await auth.signOut();
+    }
+    router.push('/');
+  };
+  
   // In a real app, get role from user session.
-  const isTelemarketing = pathname.includes('/agendamento');
-  const userRole = isTelemarketing ? 'telemarketing' : 'coordinator';
+  const userRole = user?.email?.startsWith('coordenadora') ? 'coordinator' : 'telemarketing';
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:px-6">
@@ -85,8 +96,9 @@ export function DashboardHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>Configurações</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/"><LogOut className="mr-2 h-4 w-4" />Sair</Link>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sair</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

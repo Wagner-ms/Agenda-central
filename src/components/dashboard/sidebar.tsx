@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CheckSquare, Calendar, PieChart, UserCheck, PhoneCall } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard/autorizacoes', icon: UserCheck, label: 'Autorizações', roles: ['coordinator'] },
@@ -14,10 +15,10 @@ const navItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { user } = useUser();
   // In a real app, get role from user session.
   // For demo purposes, we infer the role from the path.
-  const isTelemarketing = pathname.includes('/agendamento');
-  const userRole = isTelemarketing ? 'telemarketing' : 'coordinator';
+  const userRole = user?.email?.startsWith('coordenadora') ? 'coordinator' : 'telemarketing';
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-card sm:flex">
