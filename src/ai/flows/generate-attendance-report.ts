@@ -2,29 +2,17 @@
 
 /**
  * @fileOverview This file defines a Genkit flow for generating attendance reports.
- * It connects to Firestore to fetch real data and then uses an AI model to generate
- * a comprehensive report based on that data.
+ * This flow is pure and does not access external services. It expects data to be passed in.
  *
- * - generateAttendanceReport - A function to generate attendance reports based on specified criteria.
- * - GenerateAttendanceReportInput - The input type for the generateAttendanceReport function.
- * - GenerateAttendanceReportOutput - The return type for the generateAttendanceReport function.
+ * - generateAttendanceReportFlow - A function to generate attendance reports based on specified criteria.
+ * - GenerateAttendanceReportInput - The input type for the generateAttendanceReportFlow function.
+ * - GenerateAttendanceReportOutput - The return type for the generateAttendanceReportFlow function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import * as admin from 'firebase-admin';
-import { firebaseConfig } from '@/firebase/config';
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
-}
-const db = admin.firestore();
-
-
-const GenerateAttendanceReportInputSchema = z.object({
+export const GenerateAttendanceReportInputSchema = z.object({
   reportType: z.enum(['school', 'agent']).describe('The type of report to generate: school or agent.'),
   schoolName: z.string().optional().describe('The name of the school to filter by (required if reportType is school).'),
   agentId: z.string().optional().describe('The ID of the telemarketing agent to filter by (required if reportType is agent).'),
@@ -33,40 +21,11 @@ const GenerateAttendanceReportInputSchema = z.object({
 
 export type GenerateAttendanceReportInput = z.infer<typeof GenerateAttendanceReportInputSchema>;
 
-const GenerateAttendanceReportOutputSchema = z.object({
+export const GenerateAttendanceReportOutputSchema = z.object({
   report: z.string().describe('The generated attendance report in plain text or markdown.'),
 });
 
 export type GenerateAttendanceReportOutput = z.infer<typeof GenerateAttendanceReportOutputSchema>;
-
-export async function generateAttendanceReport(
-  input: Omit<GenerateAttendanceReportInput, 'authorizations'>
-): Promise<GenerateAttendanceReportOutput> {
-  let query: admin.firestore.Query = db.collection('authorizations');
-
-  // Apply filters based on report type
-  if (input.reportType === 'school' && input.schoolName) {
-    query = query.where('escola', '==', input.schoolName);
-  } else if (input.reportType === 'agent' && input.agentId) {
-    query = query.where('atendenteId', '==', input.agentId);
-  }
-  
-  // We are only interested in statuses that are part of the scheduling flow
-  query = query.where('status', 'in', ['agendado', 'compareceu', 'nao_compareceu', 'remarcado']);
-
-  const snapshot = await query.get();
-  const authorizations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  // Convert data to a JSON string to be passed to the flow
-  const authorizationsJson = JSON.stringify(authorizations, null, 2);
-
-  const flowInput: GenerateAttendanceReportInput = {
-    ...input,
-    authorizations: authorizationsJson,
-  };
-  
-  return generateAttendanceReportFlow(flowInput);
-}
 
 const generateAttendanceReportPrompt = ai.definePrompt({
   name: 'generateAttendanceReportPrompt',
@@ -97,7 +56,7 @@ const generateAttendanceReportPrompt = ai.definePrompt({
 });
 
 
-const generateAttendanceReportFlow = ai.defineFlow(
+export const generateAttendanceReportFlow = ai.defineFlow(
   {
     name: 'generateAttendanceReportFlow',
     inputSchema: GenerateAttendanceReportInputSchema,

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useFlow } from '@genkit-ai/next';
-import { generateAttendanceReport } from '@/ai/flows/generate-attendance-report';
+import { useState, useTransition } from 'react';
+import { generateReportAction } from '@/ai/server-actions/generate-report';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,20 +13,36 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 export function ReportGenerator() {
   const [reportType, setReportType] = useState<'school' | 'agent'>('school');
   const [filterValue, setFilterValue] = useState('');
-  const [run, { data, error, loading }] = useFlow(generateAttendanceReport);
+  const [isPending, startTransition] = useTransition();
+  const [report, setReport] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!filterValue) return;
 
-    const input = {
-      reportType,
-      schoolName: reportType === 'school' ? filterValue : undefined,
-      agentId: reportType === 'agent' ? filterValue : undefined,
-    };
-    // Note: We are not passing 'authorizations' here.
-    // The flow will fetch the data from Firestore itself.
-    run(input);
+    setReport(null);
+    setError(null);
+
+    startTransition(async () => {
+        const input = {
+          reportType,
+          schoolName: reportType === 'school' ? filterValue : undefined,
+          agentId: reportType === 'agent' ? filterValue : undefined,
+        };
+
+        try {
+            const result = await generateReportAction(input);
+            if (result.report) {
+                setReport(result.report);
+            } else {
+                setError("O relatório retornado estava vazio.");
+            }
+        } catch (e: any) {
+            setError(e.message || "Ocorreu um erro desconhecido ao gerar o relatório.");
+        }
+    });
   };
 
   return (
@@ -41,7 +56,7 @@ export function ReportGenerator() {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="reportType">Tipo de Relatório</Label>
-                        <Select onValueChange={(value: 'school' | 'agent') => setReportType(value)} defaultValue={reportType}>
+                        <Select onValueChange={(value: 'school' | 'agent') => setReportType(value)} defaultValue={reportType} disabled={isPending}>
                             <SelectTrigger id="reportType">
                             <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -60,12 +75,13 @@ export function ReportGenerator() {
                             value={filterValue}
                             onChange={(e) => setFilterValue(e.target.value)}
                             placeholder={reportType === 'school' ? 'Ex: Escola Primária Sol Nascente' : 'Ex: tele_01'}
+                            disabled={isPending}
                         />
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" disabled={loading || !filterValue} className="w-full">
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                    <Button type="submit" disabled={isPending || !filterValue} className="w-full">
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
                         Gerar Relatório
                     </Button>
                 </CardFooter>
@@ -73,7 +89,7 @@ export function ReportGenerator() {
         </Card>
 
         <div className="md:col-span-2">
-            {loading && (
+            {isPending && (
                 <div className="flex items-center justify-center h-full rounded-lg border border-dashed p-8 bg-card">
                     <div className="text-center">
                         <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
@@ -84,20 +100,20 @@ export function ReportGenerator() {
             {error && (
                 <Alert variant="destructive">
                 <AlertTitle>Erro ao Gerar Relatório</AlertTitle>
-                <AlertDescription>{error.message}</AlertDescription>
+                <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
-            {data && (
+            {report && (
                 <Card className="h-full">
                     <CardHeader>
                         <CardTitle>Relatório Gerado</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <pre className="whitespace-pre-wrap rounded-md bg-muted p-4 font-sans text-sm">{data.report}</pre>
+                        <pre className="whitespace-pre-wrap rounded-md bg-muted p-4 font-sans text-sm">{report}</pre>
                     </CardContent>
                 </Card>
             )}
-            {!loading && !data && !error && (
+            {!isPending && !report && !error && (
                 <div className="flex items-center justify-center h-full rounded-lg border border-dashed p-8 bg-card">
                     <div className="text-center">
                         <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
