@@ -32,54 +32,61 @@ const themedStatusConfig: { [key in Status]?: { colorClass: string, icon: React.
 };
 
 function EventCard({ event }: { event: Authorization }) {
-    const { toast } = useToast();
-    const config = themedStatusConfig[event.status];
+  const { toast } = useToast();
 
-    const handleStatusChange = (newStatus: Status) => {
-        // In a real app, this would be a server action
-        toast({
-            title: "Status Atualizado",
-            description: `${event.nomeAluno} agora está como "${themedStatusConfig[newStatus]?.label}".`,
-            className: "bg-accent text-accent-foreground"
-        });
-    };
+  const handleStatusChange = (newStatus: Status) => {
+    // In a real app, this would be a server action
+    toast({
+      title: 'Status Atualizado',
+      description: `${event.nomeAluno} agora está como "${themedStatusConfig[newStatus]?.label}".`,
+      className: 'bg-accent text-accent-foreground',
+    });
+  };
 
-    return (
-        <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 p-2">
-                <div className="space-y-1">
-                    <CardTitle className="text-sm leading-none truncate">{event.nomeAluno}</CardTitle>
-                    <p className="text-muted-foreground">{event.horaAgendamento}</p>
-                </div>
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {Object.keys(themedStatusConfig).filter(s => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s)).map(statusKey => (
-                            <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
-                                {themedStatusConfig[statusKey as Status]?.icon && <themedStatusConfig[statusKey as Status]!.icon className={cn("mr-2 h-4 w-4", themedStatusConfig[statusKey as Status]?.colorClass)}/>}
-                                <span>{themedStatusConfig[statusKey as Status]?.label}</span>
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </CardHeader>
-            <CardContent className="p-2 pt-0 text-muted-foreground">
-                <p className="truncate">{event.escola}</p>
-            </CardContent>
-             <CardFooter className="p-2 pt-0">
-                {config && (
-                    <div className={cn("flex items-center text-xs gap-1.5 font-medium", config.colorClass)}>
-                        <config.icon className="h-3 w-3" />
-                        <span>{config.label}</span>
-                    </div>
-                )}
-            </CardFooter>
-        </Card>
-    );
+  const config = themedStatusConfig[event.status];
+
+  return (
+    <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 p-2">
+        <div className="space-y-1">
+          <CardTitle className="text-sm leading-none truncate">{event.nomeAluno}</CardTitle>
+          <p className="text-muted-foreground">{event.horaAgendamento}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {Object.keys(themedStatusConfig)
+              .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
+              .map((statusKey) => (
+                <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
+                  {themedStatusConfig[statusKey as Status]?.icon && (
+                    <themedStatusConfig[statusKey as Status]!.icon
+                      className={cn('mr-2 h-4 w-4', themedStatusConfig[statusKey as Status]?.colorClass)}
+                    />
+                  )}
+                  <span>{themedStatusConfig[statusKey as Status]?.label}</span>
+                </DropdownMenuItem>
+              ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent className="p-2 pt-0 text-muted-foreground">
+        <p className="truncate">{event.escola}</p>
+      </CardContent>
+      <CardFooter className="p-2 pt-0">
+        {config && (
+          <div className={cn('flex items-center text-xs gap-1.5 font-medium', config.colorClass)}>
+            <config.icon className="h-3 w-3" />
+            <span>{config.label}</span>
+          </div>
+        )}
+      </CardFooter>
+    </Card>
+  );
 }
 
 export function AgendaView({ events }: { events: Authorization[] }) {
