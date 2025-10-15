@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview This file defines a Genkit prompt for generating attendance reports.
  * It also exports the input and output schemas and types for the report generation process.
