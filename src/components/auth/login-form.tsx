@@ -31,6 +31,14 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const handleSuccessfulLogin = (userCredential: any) => {
+    if (userCredential.user.email === coordinatorCredentials.email) {
+      router.push('/dashboard/autorizacoes');
+    } else {
+      router.push('/dashboard/agendamento');
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -44,44 +52,36 @@ export default function LoginForm() {
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
       toast({
         title: 'Login bem-sucedido!',
         description: `Bem-vindo(a) de volta!`,
         className: 'bg-accent text-accent-foreground',
       });
-      
-      if (userCredential.user.email === coordinatorCredentials.email) {
-        router.push('/dashboard/autorizacoes');
-      } else {
-        router.push('/dashboard/agendamento');
-      }
+      handleSuccessfulLogin(userCredential);
 
     } catch (err) {
         const authError = err as AuthError;
-        // If user does not exist, create it and then sign in.
+        
         if (authError.code === 'auth/user-not-found') {
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // Now, try to sign in again
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                 toast({
+                const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
+                toast({
                     title: 'Conta de demonstração criada!',
                     description: 'Login bem-sucedido.',
                     className: 'bg-accent text-accent-foreground',
                 });
-                if (userCredential.user.email === coordinatorCredentials.email) {
-                    router.push('/dashboard/autorizacoes');
-                } else {
-                    router.push('/dashboard/agendamento');
-                }
+                handleSuccessfulLogin(newUserCredential);
             } catch (creationError) {
-                 setError('Falha ao criar conta de demonstração.');
-                 console.error(creationError);
+                 const creationAuthError = creationError as AuthError;
+                 setError(`Falha ao criar conta: ${creationAuthError.message}`);
+                 console.error("Creation Error:", creationError);
             }
-        } else {
+        } else if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
             setError('Credenciais inválidas. Verifique seu email e senha.');
-            console.error(err);
+        }
+        else {
+            setError(`Ocorreu um erro: ${authError.message}`);
+            console.error("Login Error:", err);
         }
     } finally {
       setIsLoading(false);
