@@ -4,6 +4,7 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { AgendaView } from '@/components/dashboard/agenda-view';
 import { collection, query, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardHeader } from '@/components/ui/card';
 
 export default function AgendaPage() {
   const firestore = useFirestore();
