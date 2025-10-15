@@ -1,16 +1,16 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for generating attendance reports.
- * This flow is pure and does not access external services. It expects data to be passed in.
+ * @fileOverview This file defines a Genkit prompt for generating attendance reports.
+ * It also exports the input and output schemas and types for the report generation process.
  *
- * - generateAttendanceReportFlow - A function to generate attendance reports based on specified criteria.
- * - GenerateAttendanceReportInput - The input type for the generateAttendanceReportFlow function.
- * - GenerateAttendanceReportOutput - The return type for the generateAttendanceReportFlow function.
+ * - generateAttendanceReportPrompt - The Genkit prompt definition.
+ * - GenerateAttendanceReportInputSchema - The Zod schema for the input.
+ * - GenerateAttendanceReportOutputSchema - The Zod schema for the output.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 export const GenerateAttendanceReportInputSchema = z.object({
   reportType: z.enum(['school', 'agent']).describe('The type of report to generate: school or agent.'),
@@ -27,7 +27,7 @@ export const GenerateAttendanceReportOutputSchema = z.object({
 
 export type GenerateAttendanceReportOutput = z.infer<typeof GenerateAttendanceReportOutputSchema>;
 
-const generateAttendanceReportPrompt = ai.definePrompt({
+export const generateAttendanceReportPrompt = ai.definePrompt({
   name: 'generateAttendanceReportPrompt',
   input: { schema: GenerateAttendanceReportInputSchema },
   output: { schema: GenerateAttendanceReportOutputSchema },
@@ -54,16 +54,3 @@ const generateAttendanceReportPrompt = ai.definePrompt({
     If the dataset is empty, state that no data was found for the given criteria.
   `,
 });
-
-
-export const generateAttendanceReportFlow = ai.defineFlow(
-  {
-    name: 'generateAttendanceReportFlow',
-    inputSchema: GenerateAttendanceReportInputSchema,
-    outputSchema: GenerateAttendanceReportOutputSchema,
-  },
-  async (input) => {
-    const { output } = await generateAttendanceReportPrompt(input);
-    return output!;
-  }
-);

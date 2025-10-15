@@ -2,9 +2,31 @@
 
 import 'server-only';
 
-import { generateAttendanceReportFlow, GenerateAttendanceReportInput, GenerateAttendanceReportOutput } from '@/ai/flows/generate-attendance-report';
+import { 
+  generateAttendanceReportPrompt, 
+  GenerateAttendanceReportInputSchema,
+  GenerateAttendanceReportOutputSchema,
+  type GenerateAttendanceReportInput,
+  type GenerateAttendanceReportOutput 
+} from '@/ai/flows/generate-attendance-report';
 import * as admin from 'firebase-admin';
 import { firebaseConfig } from '@/firebase/config';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+
+// Define the flow within the server action file
+const generateAttendanceReportFlow = ai.defineFlow(
+  {
+    name: 'generateAttendanceReportFlow',
+    inputSchema: GenerateAttendanceReportInputSchema,
+    outputSchema: GenerateAttendanceReportOutputSchema,
+  },
+  async (input) => {
+    const { output } = await generateAttendanceReportPrompt(input);
+    return output!;
+  }
+);
+
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
@@ -61,6 +83,7 @@ export async function generateReportAction(
       authorizations: authorizationsJson,
     };
   
+    // Call the flow defined within this server action
     return generateAttendanceReportFlow(flowInput);
   } catch (error: any) {
     console.error("Error generating report:", error);
