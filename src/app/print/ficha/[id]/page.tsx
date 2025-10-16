@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -12,18 +13,18 @@ import { ptBR } from 'date-fns/locale';
 function LinedField({ label, value, className }: { label: string; value?: string | number; className?: string }) {
     return (
         <div className={className}>
-            <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-600">{label}</label>
-            <div className="border-b border-gray-500 p-1 text-xs h-5 flex items-end">{value || ''}</div>
+            <label className="block text-[9px] font-semibold uppercase tracking-wider text-gray-600">{label}</label>
+            <div className="border-b border-gray-500 p-1 text-[10px] h-5 flex items-end">{value || ''}</div>
         </div>
     );
 }
 
 function CheckboxField({ label, option1, option2, qualLabel }: { label: string; option1: string; option2: string; qualLabel?: string }) {
     return (
-        <div className="flex items-end gap-x-3 text-[10px]">
+        <div className="flex items-end gap-x-2 text-[9px]">
             <span className="font-semibold">{label}</span>
             <span className="flex items-center gap-1">( ) {option1}</span>
-            {qualLabel && <span className="flex items-center gap-1">QUAL? <div className="border-b border-gray-500 w-24 h-4"></div></span>}
+            {qualLabel && <span className="flex items-center gap-1">QUAL? <div className="border-b border-gray-500 w-20 h-4"></div></span>}
             <span className="flex items-center gap-1">( ) {option2}</span>
         </div>
     );
@@ -38,18 +39,18 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
     }
 
     return (
-        <div className="bg-white text-black font-sans p-2 max-w-4xl mx-auto printable-area border border-black">
-            <header className="mb-2">
+        <div className="bg-white text-black font-sans p-1 max-w-4xl mx-auto printable-area border border-black">
+            <header className="mb-1">
                  <div className="flex justify-between items-start mb-1">
-                    <h1 className="text-base font-bold mt-2">FICHA DE ATENDIMENTO – Nº ________</h1>
-                    {/* Using a standard img tag for simplicity and to avoid Next.js Image optimization issues in print contexts */}
+                    <h1 className="text-sm font-bold mt-2">FICHA DE ATENDIMENTO – Nº ________</h1>
+                    {/* Using a standard img tag for print reliability */}
                     <img 
                         src="/logo.png" 
                         alt="Logo da Empresa" 
                         style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
                     />
                 </div>
-                <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-left text-xs">
+                <div className="grid grid-cols-3 gap-x-2 gap-y-0 text-left text-xs">
                     <LinedField label="DATA" value={`${format(new Date(), 'dd/MM/yyyy')}`} />
                     <LinedField label="CÓDIGO BOLSA" />
                     <LinedField label="ORIENTADOR" />
@@ -57,8 +58,8 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
             </header>
 
             <section className="mb-1">
-                <h2 className="text-xs font-bold bg-gray-200 px-1 py-0.5 mb-1">DADOS PESSOAIS DO JOVEM</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-2 gap-y-0 text-[10px]">
+                <h2 className="text-[10px] font-bold bg-gray-200 px-1 py-0.5 mb-1">DADOS PESSOAIS DO JOVEM</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-2 gap-y-0 text-[9px]">
                     <LinedField label="Nome" value={data.nomeAluno} className="col-span-3" />
                     <LinedField label="Data Nascimento" />
                     <LinedField label="Idade" value={data.idade} />
@@ -82,8 +83,8 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
             </section>
             
             <section className="mb-1">
-                <h2 className="text-xs font-bold bg-gray-200 px-1 py-0.5 mb-1">DADOS PESSOAIS DO RESPONSÁVEL</h2>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-2 gap-y-0 text-[10px]">
+                <h2 className="text-[10px] font-bold bg-gray-200 px-1 py-0.5 mb-1">DADOS PESSOAIS DO RESPONSÁVEL</h2>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-2 gap-y-0 text-[9px]">
                     <LinedField label="Nome" value={data.nomeResponsavel} className="col-span-2" />
                     <LinedField label="Data de Nascimento" />
                     <LinedField label="Profissão" />
@@ -95,8 +96,8 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
             </section>
 
              <section className="mb-1">
-                <h2 className="text-xs font-bold bg-gray-200 px-1 py-0.5 mb-1">PERFIL PROFISSIONAL DO ALUNO</h2>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] mb-1">
+                <h2 className="text-[10px] font-bold bg-gray-200 px-1 py-0.5 mb-1">PERFIL PROFISSIONAL DO ALUNO</h2>
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] mb-1">
                     <span>( ) INFORMÁTICA BÁSICA</span>
                     <span>( ) INFORMÁTICA AVANÇADA</span>
                     <span>( ) ADMINISTRAÇÃO</span>
@@ -107,8 +108,8 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                  <LinedField label="Que faculdade gostaria de fazer" className="mt-1 text-xs" />
             </section>
             
-            <section className="mb-1 text-[10px]">
-                <h2 className="text-xs font-bold bg-gray-200 px-1 py-0.5 mb-1">PERFIL SOCIAL</h2>
+            <section className="mb-1 text-[9px]">
+                <h2 className="text-[10px] font-bold bg-gray-200 px-1 py-0.5 mb-1">PERFIL SOCIAL</h2>
                 <div className="space-y-0.5">
                     <CheckboxField label="JÁ PARTICIPOU DE ALGUM PROJETO SOCIAL?" option1="SIM" option2="NÃO" qualLabel="QUAL"/>
                     <CheckboxField label="JÁ PARTICIPOU DO PROGRAMA JOVEM APRENDIZ?" option1="SIM" option2="NÃO" qualLabel="QUAL EMPRESA"/>
@@ -120,8 +121,8 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
             </section>
             
             <section className="mb-1">
-                <h2 className="text-xs font-bold bg-gray-200 px-1 py-0.5 mb-1">INDIQUE OUTROS JOVENS PARA TAMBÉM SEREM AJUDADOS PELO PROJETO CORRENTE DO BEM.</h2>
-                <div className="space-y-0 text-[10px]">
+                <h2 className="text-[10px] font-bold bg-gray-200 px-1 py-0.5 mb-1">INDIQUE OUTROS JOVENS PARA TAMBÉM SEREM AJUDADOS PELO PROJETO CORRENTE DO BEM.</h2>
+                <div className="space-y-0 text-[9px]">
                     {Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="grid grid-cols-12 gap-x-2">
                             <LinedField label="Nome" className="col-span-6" />
@@ -132,7 +133,7 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                 </div>
             </section>
 
-            <footer className="mt-4">
+            <footer className="mt-2">
                 <div className="flex justify-center items-center">
                     <div className="text-center w-1/2">
                         <div className="border-t border-black w-2/3 mx-auto pt-1">
@@ -157,20 +158,19 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                         border: none !important;
                         padding: 0 !important;
                         margin: 0 !important;
-                        font-size: 9px;
                     }
                     @page {
                         size: A4;
-                        margin: 6mm;
+                        margin: 5mm;
                     }
                     h1 {
-                        font-size: 14px;
+                        font-size: 13px;
                     }
                     h2 {
-                         font-size: 11px;
+                         font-size: 10px;
                     }
                     label {
-                        font-size: 9px;
+                        font-size: 8px;
                     }
                 }
                 .border-b {
@@ -220,3 +220,4 @@ export default function FichaPage() {
 
     return <FichaDeAtendimento data={data} />;
 }
+
