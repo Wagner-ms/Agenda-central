@@ -4,16 +4,18 @@ import 'server-only';
 import { z } from 'zod';
 import * as admin from 'firebase-admin';
 
-// Schema for input validation
+// Schema for input validation with all fields required and no age limit
 const authorizationSchema = z.object({
-  nomeAluno: z.string().min(3),
-  idade: z.coerce.number().min(5).max(18),
-  serie: z.string().min(1),
-  turno: z.string().min(1),
-  escola: z.string().min(3),
-  nomeResponsavel: z.string().min(3),
-  telefone: z.string().min(10),
-  consent: z.literal<boolean>(true),
+  nomeAluno: z.string().min(3, "O nome do aluno é obrigatório."),
+  idade: z.coerce.number({ invalid_type_error: "A idade é obrigatória." }).positive("A idade deve ser um número positivo."),
+  serie: z.string().min(1, "A série é obrigatória."),
+  turno: z.string().min(1, "O turno é obrigatório."),
+  escola: z.string().min(3, "O nome da escola é obrigatório."),
+  nomeResponsavel: z.string().min(3, "O nome do responsável é obrigatório."),
+  telefone: z.string().min(10, "O telefone é obrigatório."),
+  consent: z.literal<boolean>(true, {
+    errorMap: () => ({ message: "Você deve marcar o campo de consentimento." }),
+  }),
 });
 
 type AuthorizationData = z.infer<typeof authorizationSchema>;
@@ -45,7 +47,7 @@ function initializeAdmin() {
 
 export async function createAuthorizationAction(
   data: AuthorizationData
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; errors?: any }> {
   // 1. Initialize Admin SDK
   initializeAdmin();
   const db = admin.firestore();
@@ -54,10 +56,12 @@ export async function createAuthorizationAction(
   const validationResult = authorizationSchema.safeParse(data);
 
   if (!validationResult.success) {
-    console.error('Validation failed:', validationResult.error.flatten());
+    const fieldErrors = validationResult.error.flatten().fieldErrors;
+    console.error('Validation failed:', fieldErrors);
     return {
       success: false,
       error: 'Dados inválidos. Por favor, verifique as informações.',
+      errors: fieldErrors,
     };
   }
 
