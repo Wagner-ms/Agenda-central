@@ -18,42 +18,51 @@ const authorizationSchema = z.object({
 
 type AuthorizationData = z.infer<typeof authorizationSchema>;
 
-// Initialize Firebase Admin SDK
-// This ensures we only initialize the app once
-if (!admin.apps.length) {
-  // When deployed to App Hosting, the SDK is automatically initialized.
-  // In a local environment, you need to provide credentials.
-  try {
-     admin.initializeApp();
-  } catch (e) {
-     console.error("initializeApp failed, probably because we are not in App Hosting. Let's try with creds.");
-     // For local development, ensure GOOGLE_APPLICATION_CREDENTIALS is set
-     // e.g., export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
-     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-         admin.initializeApp({
-             credential: admin.credential.applicationDefault(),
-         });
-     } else {
-        console.warn("GOOGLE_APPLICATION_CREDENTIALS not set. Firebase Admin SDK might not work locally.");
-     }
+function initializeAdmin() {
+  if (!admin.apps.length) {
+    // When deployed to App Hosting, the SDK is automatically initialized.
+    // In a local environment, you need to provide credentials.
+    try {
+      admin.initializeApp();
+    } catch (e) {
+      console.error(
+        "initializeApp failed, probably because we are not in App Hosting. Let's try with creds."
+      );
+      // For local development, ensure GOOGLE_APPLICATION_CREDENTIALS is set
+      // e.g., export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
+      if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+        });
+      } else {
+        console.warn(
+          'GOOGLE_APPLICATION_CREDENTIALS not set. Firebase Admin SDK might not work locally.'
+        );
+      }
+    }
   }
 }
-
-const db = admin.firestore();
 
 export async function createAuthorizationAction(
   data: AuthorizationData
 ): Promise<{ success: boolean; error?: string }> {
-  // 1. Validate the input data against the schema
+  // 1. Initialize Admin SDK
+  initializeAdmin();
+  const db = admin.firestore();
+
+  // 2. Validate the input data against the schema
   const validationResult = authorizationSchema.safeParse(data);
 
   if (!validationResult.success) {
     console.error('Validation failed:', validationResult.error.flatten());
-    return { success: false, error: 'Dados inválidos. Por favor, verifique as informações.' };
+    return {
+      success: false,
+      error: 'Dados inválidos. Por favor, verifique as informações.',
+    };
   }
 
   try {
-    // 2. Prepare the data for Firestore
+    // 3. Prepare the data for Firestore
     const validatedData = validationResult.data;
     const docData = {
       ...validatedData,
@@ -63,11 +72,10 @@ export async function createAuthorizationAction(
       atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // 3. Add the document to the 'authorizations' collection
+    // 4. Add the document to the 'authorizations' collection
     await db.collection('authorizations').add(docData);
 
     return { success: true };
-
   } catch (error: any) {
     console.error('Firestore Error:', error);
     // Return a generic error message to the client
