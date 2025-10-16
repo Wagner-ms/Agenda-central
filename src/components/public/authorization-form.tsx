@@ -1,18 +1,26 @@
 'use client';
 
+import * as React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Send } from 'lucide-react';
 import { createAuthorizationAction } from '@/app/autorizar/actions';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Label } from '../ui/label';
 
 // Schema for input validation with all fields required and no age limit
 const authorizationSchema = z.object({
@@ -28,142 +36,122 @@ const authorizationSchema = z.object({
   }),
 });
 
-type AuthorizationFormValues = z.infer<typeof authorizationSchema>;
+type AuthorizationFormData = z.infer<typeof authorizationSchema>;
 
-export default function AuthorizationForm({ initialSchoolName }: { initialSchoolName?: string }) {
+export default function AuthorizationForm({ initialSchoolName }: { initialSchoolName: string }) {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [serverError, setServerError] = React.useState<string | null>(null);
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
 
-  const form = useForm<AuthorizationFormValues>({
+  const form = useForm<AuthorizationFormData>({
     resolver: zodResolver(authorizationSchema),
     defaultValues: {
+      escola: initialSchoolName || '',
       nomeAluno: '',
-      idade: undefined, // Will be coerced to a number, so undefined is fine to show placeholder
+      idade: undefined,
       serie: '',
       turno: '',
-      escola: initialSchoolName || '',
       nomeResponsavel: '',
       telefone: '',
       consent: false,
     },
   });
 
-  const onSubmit = async (data: AuthorizationFormValues) => {
-    setIsLoading(true);
+  async function onSubmit(data: AuthorizationFormData) {
+    setIsSubmitting(true);
     setServerError(null);
 
     const result = await createAuthorizationAction(data);
 
+    setIsSubmitting(false);
+
     if (result.success) {
       toast({
         title: 'Autorização Enviada com Sucesso!',
-        description: 'Obrigado por preencher o formulário.',
+        description: 'Obrigado por preencher o formulário. Entraremos em contato em breve.',
         className: 'bg-accent text-accent-foreground',
       });
       form.reset();
     } else {
-      // Handle server-side validation errors
+      setServerError(result.error || 'Ocorreu um erro desconhecido.');
       if (result.errors) {
-        for (const [field, messages] of Object.entries(result.errors)) {
-          form.setError(field as keyof AuthorizationFormValues, {
-            type: 'server',
-            message: (messages as string[]).join(', '),
-          });
-        }
+        // You can use form.setError here if you want to display field-specific errors
+        console.error("Validation Errors:", result.errors);
       }
-      setServerError(result.error || 'Ocorreu um erro no servidor.');
     }
-
-    setIsLoading(false);
-  };
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {serverError && !form.formState.isDirty && (
-          <Alert variant="destructive">
-            <AlertTitle>Erro no Servidor</AlertTitle>
-            <AlertDescription>{serverError}</AlertDescription>
-          </Alert>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="nomeAluno"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Aluno</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome completo do aluno" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="idade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Idade</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="Ex: 8" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="serie"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Série</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: 3º Ano" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
+          <FormField
+            control={form.control}
+            name="nomeAluno"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome do Aluno</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome completo do aluno" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="idade"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Idade</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="Ex: 8" {...field} value={field.value ?? ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="serie"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Série</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: 3º Ano" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
             control={form.control}
             name="turno"
             render={({ field }) => (
-                <FormItem>
+              <FormItem>
                 <FormLabel>Turno</FormLabel>
                 <FormControl>
-                    <Input placeholder="Manhã ou Tarde" {...field} />
+                  <Input placeholder="Manhã ou Tarde" {...field} />
                 </FormControl>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
-            <FormField
-            control={form.control}
-            name="escola"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Escola</FormLabel>
-                <FormControl>
-                    <Input placeholder="Nome da escola" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
+          />
         </div>
 
-        <div className="space-y-2">
-            <h3 className="text-lg font-medium border-t pt-4">Dados do Responsável</h3>
-        </div>
+        <FormField
+          control={form.control}
+          name="escola"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Escola</FormLabel>
+              <FormControl>
+                <Input placeholder="Nome da escola" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -184,9 +172,9 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
             name="telefone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telefone (com DDD)</FormLabel>
+                <FormLabel>Telefone</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="(99) 99999-9999" {...field} />
+                  <Input type="tel" placeholder="(00) 90000-0000" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -198,7 +186,7 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
           control={form.control}
           name="consent"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm bg-background">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -206,18 +194,32 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <Label htmlFor="consent" className="cursor-pointer">
-                  Eu, responsável pelo aluno, autorizo a participação na atividade e o contato da escola.
-                </Label>
-                <FormMessage />
+                <FormLabel>
+                  Termos de Consentimento
+                </FormLabel>
+                <FormDescription>
+                  Autorizo a participação do meu filho(a) e o contato da escola para fins de agendamento.
+                </FormDescription>
+                 <FormMessage />
               </div>
             </FormItem>
           )}
         />
+        
+        {serverError && (
+          <Alert variant="destructive">
+            <AlertTitle>Falha no Envio</AlertTitle>
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        )}
 
-
-        <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
-          {isLoading ? <Loader2 className="animate-spin" /> : 'Enviar Autorização'}
+        <Button type="submit" className="w-full text-lg" size="lg" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Send className="mr-2 h-5 w-5" />
+          )}
+          {isSubmitting ? 'Enviando...' : 'Enviar Autorização'}
         </Button>
       </form>
     </Form>
