@@ -1,201 +1,235 @@
+
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { createAuthorizationAction } from '@/app/autorizar/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { createAuthorizationAction } from '@/app/autorizar/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { PartyPopper } from 'lucide-react';
 
-// Client-side schema mirroring server-side validation
-const formSchema = z.object({
-  nomeAluno: z.string().min(3, { message: 'O nome do aluno é obrigatório.' }),
-  idade: z.coerce.number({ invalid_type_error: 'A idade é obrigatória.' }).positive({ message: 'A idade deve ser um número positivo.' }),
-  serie: z.string().min(1, { message: 'A série é obrigatória.' }),
-  turno: z.enum(['manha', 'tarde'], { required_error: 'O turno é obrigatório.' }),
-  escola: z.string().min(3, { message: 'O nome da escola é obrigatório.' }),
-  nomeResponsavel: z.string().min(3, { message: 'O nome do responsável é obrigatório.' }),
-  telefone: z.string().min(10, { message: 'O telefone é obrigatório.' }),
-  consent: z.literal(true, {
-    errorMap: () => ({ message: "Você deve ler e concordar com os termos." }),
+const authorizationSchema = z.object({
+  nomeAluno: z.string().min(3, "O nome do aluno é obrigatório."),
+  idade: z.coerce.number({ invalid_type_error: "A idade é obrigatória." }).positive("A idade deve ser um número positivo."),
+  serie: z.string().min(1, "A série é obrigatória."),
+  turno: z.string().min(1, "O turno é obrigatório."),
+  escola: z.string().min(3, "O nome da escola é obrigatório."),
+  nomeResponsavel: z.string().min(3, "O nome do responsável é obrigatório."),
+  telefone: z.string().min(10, "O telefone é obrigatório."),
+  consent: z.literal<boolean>(true, {
+    errorMap: () => ({ message: "Você deve marcar o campo de consentimento." }),
   }),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type AuthorizationFormValues = z.infer<typeof authorizationSchema>;
 
-export default function AuthorizationForm({ initialSchoolName }: { initialSchoolName?: string }) {
+export default function AuthorizationForm({ initialSchoolName }: { initialSchoolName: string }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<AuthorizationFormValues>({
+    resolver: zodResolver(authorizationSchema),
     defaultValues: {
+      escola: initialSchoolName || '',
       nomeAluno: '',
       idade: undefined,
       serie: '',
-      turno: undefined,
-      escola: initialSchoolName || '',
+      turno: '',
       nomeResponsavel: '',
       telefone: '',
       consent: false,
     },
   });
-  
-  const { register, handleSubmit, formState: { errors } } = form;
 
-  async function onSubmit(data: FormValues) {
-    setIsSubmitting(true);
-    setSubmissionError(null);
-
+  async function onSubmit(data: AuthorizationFormValues) {
+    setIsLoading(true);
     try {
       const result = await createAuthorizationAction(data);
       if (result.success) {
-        toast({
-          title: 'Autorização Enviada!',
-          description: 'Seus dados foram recebidos com sucesso.',
-          className: 'bg-accent text-accent-foreground',
-        });
         setIsSuccess(true);
       } else {
-         const errorMsg = result.errors ? Object.values(result.errors).flat().join(' ') : result.error;
-        setSubmissionError(errorMsg || 'Ocorreu um erro. Tente novamente.');
         toast({
-          title: 'Falha no Envio',
-          description: errorMsg || 'Por favor, verifique os dados e tente novamente.',
-          variant: 'destructive',
+          variant: "destructive",
+          title: "Erro no Envio",
+          description: result.error || "Houve um problema ao processar seu formulário.",
         });
+        if (result.errors) {
+            Object.entries(result.errors).forEach(([field, messages]) => {
+                form.setError(field as keyof AuthorizationFormValues, {
+                    type: 'server',
+                    message: (messages as string[]).join(', ')
+                });
+            });
+        }
       }
     } catch (error) {
-      setSubmissionError('Ocorreu um erro de comunicação. Tente novamente mais tarde.');
       toast({
-        title: 'Erro de Rede',
-        description: 'Não foi possível conectar ao servidor.',
-        variant: 'destructive',
+        variant: "destructive",
+        title: "Erro Inesperado",
+        description: "Ocorreu um erro. Tente novamente mais tarde.",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   }
+  
+    if (isSuccess) {
+        return (
+            <div className="flex flex-col items-center justify-center text-center p-8">
+                <PartyPopper className="h-16 w-16 text-green-500 mb-4" />
+                <h2 className="text-2xl font-bold mb-2">Formulário Enviado!</h2>
+                <p className="text-muted-foreground">
+                    Sua autorização foi enviada com sucesso. Em breve, nossa equipe entrará em contato.
+                </p>
+            </div>
+        );
+    }
 
-  if (isSuccess) {
-    return (
-      <div className="text-center p-8 bg-green-50 rounded-lg">
-        <h3 className="text-2xl font-bold text-green-700 mb-2">Sucesso!</h3>
-        <p className="text-muted-foreground">Sua autorização foi enviada. Entraremos em contato em breve.</p>
-        <p className="text-muted-foreground mt-2">Obrigado por participar!</p>
-      </div>
-    );
-  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {submissionError && (
-          <Alert variant="destructive">
-            <AlertTitle>Erro no Formulário</AlertTitle>
-            <AlertDescription>{submissionError}</AlertDescription>
-          </Alert>
-        )}
-        
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="nome-aluno">Nome do Aluno(a)</Label>
-          <Input id="nome-aluno" {...register('nomeAluno')} placeholder="Nome completo do aluno" />
-          {errors.nomeAluno && <p className="text-xs text-destructive">{errors.nomeAluno.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="idade">Idade</Label>
-          <Input id="idade" type="number" {...register('idade')} placeholder="Idade do aluno" />
-           {errors.idade && <p className="text-xs text-destructive">{errors.idade.message}</p>}
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="serie">Série</Label>
-            <Input id="serie" {...register('serie')} placeholder="Ex: 5º Ano" />
-             {errors.serie && <p className="text-xs text-destructive">{errors.serie.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label>Turno</Label>
-            <Controller
-                name="turno"
-                control={form.control}
-                render={({ field }) => (
-                    <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex items-center space-x-4 pt-2"
-                    >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="manha" id="manha" />
-                        <Label htmlFor="manha">Manhã</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="tarde" id="tarde" />
-                        <Label htmlFor="tarde">Tarde</Label>
-                    </div>
-                    </RadioGroup>
-                )}
-                />
-
-             {errors.turno && <p className="text-xs text-destructive pt-2">{errors.turno.message}</p>}
-          </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="escola">Escola</Label>
-        <Input id="escola" {...register('escola')} placeholder="Nome da escola" />
-         {errors.escola && <p className="text-xs text-destructive">{errors.escola.message}</p>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="nome-responsavel">Nome do Responsável</Label>
-          <Input id="nome-responsavel" {...register('nomeResponsavel')} placeholder="Nome do pai ou mãe" />
-           {errors.nomeResponsavel && <p className="text-xs text-destructive">{errors.nomeResponsavel.message}</p>}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="telefone">Telefone para Contato</Label>
-          <Input id="telefone" type="tel" {...register('telefone')} placeholder="(99) 99999-9999" />
-           {errors.telefone && <p className="text-xs text-destructive">{errors.telefone.message}</p>}
-        </div>
-      </div>
-
-      <div className="space-y-3 pt-2">
-        <div className="flex items-start space-x-3">
-          <Controller
-            name="consent"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
             control={form.control}
+            name="nomeAluno"
             render={({ field }) => (
-                <Checkbox 
-                    id="consent"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    className="mt-1"
-                />
+                <FormItem>
+                <FormLabel>Nome do Aluno</FormLabel>
+                <FormControl>
+                    <Input placeholder="Nome completo do aluno" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
             )}
-          />
-          <Label htmlFor="consent" className="font-normal text-sm text-muted-foreground">
-            Ao marcar esta caixa, você autoriza seu filho(a) a participar da atividade e concorda que a equipe entre em contato para agendamento.
-          </Label>
+            />
+            <FormField
+            control={form.control}
+            name="idade"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Idade</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="Idade do aluno" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+             <FormField
+            control={form.control}
+            name="serie"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Série</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: 9º Ano" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+             <FormField
+            control={form.control}
+            name="turno"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Turno</FormLabel>
+                <FormControl>
+                    <Input placeholder="Manhã ou Tarde" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
         </div>
-        {errors.consent && <p className="text-xs text-destructive pl-9 -mt-2">{errors.consent.message}</p>}
-      </div>
+        <FormField
+          control={form.control}
+          name="escola"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Escola</FormLabel>
+              <FormControl>
+                <Input placeholder="Nome da escola" {...field} disabled={isLoading || !!initialSchoolName} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="nomeResponsavel"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Nome do Responsável</FormLabel>
+                <FormControl>
+                    <Input placeholder="Nome completo do responsável" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="telefone"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Telefone do Responsável</FormLabel>
+                <FormControl>
+                    <Input type="tel" placeholder="(99) 99999-9999" {...field} disabled={isLoading} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
 
-      <div className="pt-4">
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="animate-spin" /> : 'Enviar Autorização'}
+        <FormField
+          control={form.control}
+          name="consent"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+               <FormControl>
+                    <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={isLoading}
+                    />
+                </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  Termo de Consentimento
+                </FormLabel>
+                <p className="text-sm text-muted-foreground">
+                  Autorizo a participação do meu filho(a) na atividade e o contato da equipe.
+                </p>
+                 <FormMessage className="pt-2" />
+              </div>
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Enviar Autorização'}
         </Button>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 }
