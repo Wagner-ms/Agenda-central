@@ -2,19 +2,41 @@
 
 import { useCollection } from '@/firebase';
 import { AuthorizationsTable } from '@/components/dashboard/authorizations-table';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState } from 'react';
+import type { Authorization } from '@/lib/types';
 
 export default function AuthorizationsPage() {
   const firestore = useFirestore();
+  const [pendingAuthorizations, setPendingAuthorizations] = useState<Authorization[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const authorizationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'authorizations'), where('status', '==', 'pendente'));
   }, [firestore]);
 
-  const { data: pendingAuthorizations, isLoading } = useCollection(authorizationsQuery);
+  useEffect(() => {
+    if (!authorizationsQuery) {
+        setIsLoading(false);
+        return;
+    }
+
+    // Subscribe to the query, but force it to fetch from the server to bypass cache.
+    const unsubscribe = onSnapshot(authorizationsQuery, { includeMetadataChanges: true }, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Authorization));
+        setPendingAuthorizations(data);
+        setIsLoading(false);
+    }, (error) => {
+        console.error("Error fetching authorizations:", error);
+        setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [authorizationsQuery]);
+
 
   if (isLoading) {
     return (
