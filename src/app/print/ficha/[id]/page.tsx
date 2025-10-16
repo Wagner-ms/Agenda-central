@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -128,12 +129,10 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                 </div>
             </section>
 
-            <footer className="mt-2">
-                <div className="flex justify-center items-center">
-                    <div className="text-center w-1/2">
-                        <div className="border-t border-black w-2/3 mx-auto pt-1">
-                            <p className="text-[9px]">Assinatura do Responsável</p>
-                        </div>
+            <footer className="mt-8 text-center">
+                <div className="w-1/2 mx-auto">
+                    <div className="border-t border-black pt-1">
+                        <p className="text-[9px]">Assinatura do Responsável</p>
                     </div>
                 </div>
             </footer>
@@ -158,6 +157,7 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                         border: none !important;
                         padding: 0 !important;
                         margin: 0 !important;
+                        font-size: 8.5px;
                     }
                     @page {
                         size: A4;
