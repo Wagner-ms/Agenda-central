@@ -74,55 +74,49 @@ function EventCard({ event }: { event: Authorization }) {
   const eventDate = getEventDate();
 
   return (
-    <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md">
+    <Card className="mb-2 text-xs shadow-sm transition-all hover:shadow-md flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-2">
         <div className="space-y-1">
           <CardTitle className="text-sm leading-none truncate">{event.nomeAluno}</CardTitle>
           <p className="text-muted-foreground">{event.horaAgendamento}</p>
         </div>
-        <div className="flex items-center">
-            <Button asChild variant="ghost" size="icon" className="h-6 w-6">
-                <Link href={`/print/ficha/${event.id}`} target="_blank">
-                    <Printer className="h-4 w-4" />
-                </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6">
+              <MoreVertical className="h-4 w-4" />
             </Button>
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                <MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                {Object.keys(themedStatusConfig)
-                .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
-                .map((statusKey) => {
-                    const menuItemConfig = themedStatusConfig[statusKey as Status];
-                    const MenuItemIcon = menuItemConfig?.icon;
-                    return (
-                    <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
-                        {MenuItemIcon && (
-                        <MenuItemIcon
-                            className={cn('mr-2 h-4 w-4', menuItemConfig?.colorClass)}
-                        />
-                        )}
-                        <span>{menuItemConfig?.label}</span>
-                    </DropdownMenuItem>
-                    );
-                })}
-            </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {Object.keys(themedStatusConfig)
+              .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
+              .map((statusKey) => {
+                const menuItemConfig = themedStatusConfig[statusKey as Status];
+                const MenuItemIcon = menuItemConfig?.icon;
+                return (
+                  <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
+                    {MenuItemIcon && <MenuItemIcon className={cn('mr-2 h-4 w-4', menuItemConfig?.colorClass)} />}
+                    <span>{menuItemConfig?.label}</span>
+                  </DropdownMenuItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent className="p-2 pt-0 text-muted-foreground">
         <p className="truncate">{event.escola}</p>
       </CardContent>
-      <CardFooter className="p-2 pt-0">
+      <CardFooter className="p-2 pt-0 mt-auto flex justify-between items-center">
         {config && IconComponent && (
           <div className={cn('flex items-center text-xs gap-1.5 font-medium', config.colorClass)}>
             <IconComponent className="h-3 w-3" />
             <span>{config.label}</span>
           </div>
         )}
+        <Button asChild variant="ghost" size="icon" className="h-6 w-6 ml-auto">
+          <Link href={`/print/ficha/${event.id}`} target="_blank" title="Imprimir Ficha">
+            <Printer className="h-4 w-4" />
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
   );
