@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -9,7 +8,6 @@ import type { Authorization } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Image from 'next/image';
 
 function LinedField({ label, value, className }: { label: string; value?: string | number; className?: string }) {
     return (
@@ -44,12 +42,11 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
             <header className="mb-2">
                  <div className="flex justify-between items-start mb-1">
                     <h1 className="text-base font-bold mt-2">FICHA DE ATENDIMENTO – Nº ________</h1>
-                    <Image 
+                    {/* Using a standard img tag for simplicity and to avoid Next.js Image optimization issues in print contexts */}
+                    <img 
                         src="/logo.png" 
                         alt="Logo da Empresa" 
-                        width={150} 
-                        height={50}
-                        className="object-contain"
+                        style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
                     />
                 </div>
                 <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-left text-xs">
@@ -160,11 +157,20 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                         border: none !important;
                         padding: 0 !important;
                         margin: 0 !important;
-                        font-size: 10px;
+                        font-size: 9px;
                     }
                     @page {
                         size: A4;
-                        margin: 8mm;
+                        margin: 6mm;
+                    }
+                    h1 {
+                        font-size: 14px;
+                    }
+                    h2 {
+                         font-size: 11px;
+                    }
+                    label {
+                        font-size: 9px;
                     }
                 }
                 .border-b {
