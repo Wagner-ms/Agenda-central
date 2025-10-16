@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -150,6 +150,21 @@ export function ReportGenerator() {
   const [submittedFilter, setSubmittedFilter] = useState<ReportFilter | null>(null);
   const [isPending, setIsPending] = useState(false);
 
+  const firestore = useFirestore();
+
+    const allAuthorizationsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'authorizations');
+    }, [firestore]);
+
+    const { data: allAuthorizations, isLoading: isLoadingSchools } = useCollection(allAuthorizationsQuery);
+
+    const schoolOptions = useMemo(() => {
+        if (!allAuthorizations) return [];
+        const schoolNames = allAuthorizations.map(auth => auth.escola).filter(Boolean);
+        return [...new Set(schoolNames)];
+    }, [allAuthorizations]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!filterValue) return;
@@ -159,6 +174,17 @@ export function ReportGenerator() {
     // This is a bit of a trick to show the loading state, as useCollection is very fast
     setTimeout(() => setIsPending(false), 500); 
   };
+  
+  const handleReportTypeChange = (value: 'school' | 'agent') => {
+    setReportType(value);
+    setFilterValue(''); // Reset filter value when type changes
+    setSubmittedFilter(null);
+  }
+
+  const handleFilterValueChange = (value: string) => {
+    setFilterValue(value);
+    setSubmittedFilter(null);
+  }
 
   return (
     <div className="space-y-8">
@@ -171,7 +197,7 @@ export function ReportGenerator() {
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="reportType">Tipo de Relatório</Label>
-                        <Select onValueChange={(value: 'school' | 'agent') => setReportType(value)} defaultValue={reportType} disabled={isPending}>
+                        <Select onValueChange={handleReportTypeChange} defaultValue={reportType} disabled={isPending}>
                             <SelectTrigger id="reportType">
                             <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
@@ -185,13 +211,26 @@ export function ReportGenerator() {
                         <Label htmlFor="filterValue">
                             {reportType === 'school' ? 'Nome da Escola' : 'ID do Atendente'}
                         </Label>
-                        <Input
-                            id="filterValue"
-                            value={filterValue}
-                            onChange={(e) => setFilterValue(e.target.value)}
-                            placeholder={reportType === 'school' ? 'Ex: Escola Primária Sol Nascente' : 'Ex: tele_01'}
-                            disabled={isPending}
-                        />
+                        {reportType === 'school' ? (
+                            <Select onValueChange={handleFilterValueChange} value={filterValue} disabled={isPending || isLoadingSchools}>
+                                <SelectTrigger id="filterValue">
+                                    <SelectValue placeholder={isLoadingSchools ? "Carregando escolas..." : "Selecione uma escola"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {schoolOptions.map(school => (
+                                        <SelectItem key={school} value={school}>{school}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input
+                                id="filterValue"
+                                value={filterValue}
+                                onChange={(e) => handleFilterValueChange(e.target.value)}
+                                placeholder={'Ex: tele_01'}
+                                disabled={isPending}
+                            />
+                        )}
                     </div>
                 </CardContent>
                 <CardFooter>
