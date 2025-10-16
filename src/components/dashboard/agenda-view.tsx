@@ -1,3 +1,4 @@
+
 /** @jsxImportSource react */
 'use client';
 
@@ -13,7 +14,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import { ArrowLeft, ArrowRight, CheckCircle, XCircle, Clock, RefreshCw, MoreVertical } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, XCircle, Clock, RefreshCw, MoreVertical, Printer } from 'lucide-react';
 import React, { useState } from 'react';
 import {
   DropdownMenu,
@@ -24,6 +25,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
+import Link from 'next/link';
 
 const themedStatusConfig: { [key in Status]?: { colorClass: string; icon: React.ElementType; label: string } } = {
     agendado: { colorClass: 'text-primary', icon: Clock, label: 'Agendado' },
@@ -78,31 +80,38 @@ function EventCard({ event }: { event: Authorization }) {
           <CardTitle className="text-sm leading-none truncate">{event.nomeAluno}</CardTitle>
           <p className="text-muted-foreground">{event.horaAgendamento}</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-1">
-              <MoreVertical className="h-4 w-4" />
+        <div className="flex items-center">
+            <Button asChild variant="ghost" size="icon" className="h-6 w-6">
+                <Link href={`/print/ficha/${event.id}`} target="_blank">
+                    <Printer className="h-4 w-4" />
+                </Link>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {Object.keys(themedStatusConfig)
-              .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
-              .map((statusKey) => {
-                const menuItemConfig = themedStatusConfig[statusKey as Status];
-                const MenuItemIcon = menuItemConfig?.icon;
-                return (
-                  <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
-                    {MenuItemIcon && (
-                      <MenuItemIcon
-                        className={cn('mr-2 h-4 w-4', menuItemConfig?.colorClass)}
-                      />
-                    )}
-                    <span>{menuItemConfig?.label}</span>
-                  </DropdownMenuItem>
-                );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                {Object.keys(themedStatusConfig)
+                .filter((s) => ['agendado', 'compareceu', 'nao_compareceu', 'remarcado'].includes(s))
+                .map((statusKey) => {
+                    const menuItemConfig = themedStatusConfig[statusKey as Status];
+                    const MenuItemIcon = menuItemConfig?.icon;
+                    return (
+                    <DropdownMenuItem key={statusKey} onClick={() => handleStatusChange(statusKey as Status)}>
+                        {MenuItemIcon && (
+                        <MenuItemIcon
+                            className={cn('mr-2 h-4 w-4', menuItemConfig?.colorClass)}
+                        />
+                        )}
+                        <span>{menuItemConfig?.label}</span>
+                    </DropdownMenuItem>
+                    );
+                })}
+            </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
       </CardHeader>
       <CardContent className="p-2 pt-0 text-muted-foreground">
         <p className="truncate">{event.escola}</p>
