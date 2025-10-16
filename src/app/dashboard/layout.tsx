@@ -6,31 +6,32 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { DashboardHeader } from '@/components/dashboard/header';
 import { useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect } from 'react';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 
-  if (isUserLoading) {
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/');
+    }
+  }, [isUserLoading, user, router]);
+
+
+  if (isUserLoading || !user) {
     return (
-      <div className="flex min-h-screen w-full flex-col">
-        <div className="flex h-14 items-center border-b px-4 sm:px-6">
-          <Skeleton className="h-8 w-8 rounded-full" />
-          <div className="ml-auto flex items-center gap-4">
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
-        </div>
-        <div className="flex-1 p-4 sm:p-6 md:p-8">
-          <Skeleton className="h-full w-full rounded-lg" />
+      <div className="flex min-h-screen w-full flex-col bg-background">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+          <Skeleton className="h-8 w-full" />
+        </header>
+        <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
+          <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+            <Skeleton className="h-[80vh] w-full" />
+          </main>
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    router.replace('/');
-    return null;
   }
 
   return (
