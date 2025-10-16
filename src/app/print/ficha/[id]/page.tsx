@@ -41,15 +41,7 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
     return (
         <div className="bg-white text-black font-sans p-1 max-w-4xl mx-auto printable-area border border-black">
             <header className="mb-1">
-                 <div className="flex justify-between items-start mb-1">
-                    <h1 className="text-sm font-bold mt-2">FICHA DE ATENDIMENTO – Nº ________</h1>
-                    {/* Using a standard img tag for print reliability */}
-                    <img 
-                        src="/logo.png" 
-                        alt="Logo da Empresa" 
-                        style={{ width: '150px', height: 'auto', objectFit: 'contain' }}
-                    />
-                </div>
+                <h1 className="text-sm font-bold mt-2">FICHA DE ATENDIMENTO – Nº ________</h1>
                 <div className="grid grid-cols-3 gap-x-2 gap-y-0 text-left text-xs">
                     <LinedField label="DATA" value={`${format(new Date(), 'dd/MM/yyyy')}`} />
                     <LinedField label="CÓDIGO BOLSA" />
@@ -220,4 +212,5 @@ export default function FichaPage() {
 
     return <FichaDeAtendimento data={data} />;
 }
+
 
