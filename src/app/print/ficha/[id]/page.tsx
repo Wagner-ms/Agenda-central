@@ -9,6 +9,7 @@ import type { Authorization } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import Image from 'next/image';
 
 function LinedField({ label, value, className }: { label: string; value?: string | number; className?: string }) {
     return (
@@ -21,7 +22,7 @@ function LinedField({ label, value, className }: { label: string; value?: string
 
 function CheckboxField({ label, option1, option2, qualLabel }: { label: string; option1: string; option2: string; qualLabel?: string }) {
     return (
-        <div className="flex items-end gap-x-4 text-sm">
+        <div className="flex items-end gap-x-4 text-xs">
             <span>{label}</span>
             <span className="flex items-center gap-2">( ) {option1}</span>
             {qualLabel && <span className="flex items-center gap-2">QUAL? <div className="border-b border-gray-500 w-32 h-5"></div></span>}
@@ -39,19 +40,33 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
     }
 
     return (
-        <div className="bg-white text-black font-sans p-6 max-w-4xl mx-auto printable-area border-2 border-black">
-            <header className="text-center mb-6">
-                <h1 className="text-xl font-bold">FICHA DE ATENDIMENTO – Nº ________</h1>
-                <div className="grid grid-cols-3 gap-4 text-left mt-3 text-xs">
+        <div className="bg-white text-black font-sans p-4 max-w-4xl mx-auto printable-area border-2 border-black">
+            <header className="mb-4">
+                 <div className="flex justify-between items-start mb-2">
+                    <h1 className="text-lg font-bold">FICHA DE ATENDIMENTO – Nº ________</h1>
+                    {/* 
+                      ============================================================
+                      ATENÇÃO: Substitua a URL abaixo pela URL do seu logo.
+                      ============================================================
+                    */}
+                    <Image 
+                        src="https://placehold.co/150x50" 
+                        alt="Logo da Empresa" 
+                        width={150} 
+                        height={50}
+                        className="object-contain"
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-left text-xs">
                     <LinedField label="DATA" value={`${format(new Date(), 'dd/MM/yyyy')}`} />
                     <LinedField label="CÓDIGO BOLSA" />
                     <LinedField label="ORIENTADOR" />
                 </div>
             </header>
 
-            <section className="mb-4">
-                <h2 className="text-base font-bold bg-gray-200 px-2 py-0.5 mb-2">DADOS PESSOAIS DO JOVEM</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-4 gap-y-2">
+            <section className="mb-2">
+                <h2 className="text-sm font-bold bg-gray-200 px-2 py-0.5 mb-1">DADOS PESSOAIS DO JOVEM</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
                     <LinedField label="Nome" value={data.nomeAluno} className="col-span-3" />
                     <LinedField label="Data Nascimento" />
                     <LinedField label="Idade" value={data.idade} />
@@ -69,14 +84,14 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                     <LinedField label="Cidade" />
                     <LinedField label="UF" />
                 </div>
-                 <div className="mt-2 text-xs">
+                 <div className="mt-1 text-xs">
                     <CheckboxField label="ALUNO POSSUI ALGUMA NECESSIDADE ESPECIAL?" option1="SIM" option2="NÃO" qualLabel="QUAL" />
                 </div>
             </section>
             
-            <section className="mb-4">
-                <h2 className="text-base font-bold bg-gray-200 px-2 py-0.5 mb-2">DADOS PESSOAIS DO RESPONSÁVEL</h2>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-2">
+            <section className="mb-2">
+                <h2 className="text-sm font-bold bg-gray-200 px-2 py-0.5 mb-1">DADOS PESSOAIS DO RESPONSÁVEL</h2>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 text-xs">
                     <LinedField label="Nome" value={data.nomeResponsavel} className="col-span-2" />
                     <LinedField label="Data de Nascimento" />
                     <LinedField label="Profissão" />
@@ -87,22 +102,22 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                 </div>
             </section>
 
-             <section className="mb-4">
-                <h2 className="text-base font-bold bg-gray-200 px-2 py-0.5 mb-2">PERFIL PROFISSIONAL DO ALUNO</h2>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-2">
+             <section className="mb-2">
+                <h2 className="text-sm font-bold bg-gray-200 px-2 py-0.5 mb-1">PERFIL PROFISSIONAL DO ALUNO</h2>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-1">
                     <span>( ) INFORMÁTICA BÁSICA</span>
                     <span>( ) INFORMÁTICA AVANÇADA</span>
                     <span>( ) ADMINISTRAÇÃO</span>
                     <span>( ) INGLÊS</span>
                     <span>( ) ESPANHOL</span>
                 </div>
-                 <LinedField label="Outros" />
-                 <LinedField label="Que faculdade gostaria de fazer" className="mt-1" />
+                 <LinedField label="Outros" className="text-xs" />
+                 <LinedField label="Que faculdade gostaria de fazer" className="mt-1 text-xs" />
             </section>
             
-            <section className="mb-4 text-xs">
-                <h2 className="text-base font-bold bg-gray-200 px-2 py-0.5 mb-2">PERFIL SOCIAL</h2>
-                <div className="space-y-2">
+            <section className="mb-2 text-xs">
+                <h2 className="text-sm font-bold bg-gray-200 px-2 py-0.5 mb-1">PERFIL SOCIAL</h2>
+                <div className="space-y-1">
                     <CheckboxField label="JÁ PARTICIPOU DE ALGUM PROJETO SOCIAL?" option1="SIM" option2="NÃO" qualLabel="QUAL"/>
                     <CheckboxField label="JÁ PARTICIPOU DO PROGRAMA JOVEM APRENDIZ?" option1="SIM" option2="NÃO" qualLabel="QUAL EMPRESA"/>
                     <div className="flex gap-4 pt-1">
@@ -112,9 +127,9 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                 </div>
             </section>
             
-            <section className="mb-4">
-                <h2 className="text-base font-bold bg-gray-200 px-2 py-0.5 mb-2">INDIQUE OUTROS JOVENS PARA TAMBÉM SEREM AJUDADOS PELO PROJETO CORRENTE DO BEM.</h2>
-                <div className="space-y-1">
+            <section className="mb-2">
+                <h2 className="text-sm font-bold bg-gray-200 px-2 py-0.5 mb-1">INDIQUE OUTROS JOVENS PARA TAMBÉM SEREM AJUDADOS PELO PROJETO CORRENTE DO BEM.</h2>
+                <div className="space-y-0.5 text-xs">
                     {Array.from({ length: 6 }).map((_, i) => (
                         <div key={i} className="grid grid-cols-12 gap-x-4">
                             <LinedField label="Nome" className="col-span-6" />
@@ -125,11 +140,11 @@ function FichaDeAtendimento({ data }: { data: Authorization }) {
                 </div>
             </section>
 
-            <footer className="mt-8">
+            <footer className="mt-6">
                 <div className="flex justify-center items-center">
                     <div className="text-center w-1/2">
                         <div className="border-t-2 border-black w-2/3 mx-auto pt-1">
-                            <p className="text-sm">Assinatura do Responsável</p>
+                            <p className="text-xs">Assinatura do Responsável</p>
                         </div>
                     </div>
                 </div>
@@ -203,5 +218,3 @@ export default function FichaPage() {
 
     return <FichaDeAtendimento data={data} />;
 }
-
-    
