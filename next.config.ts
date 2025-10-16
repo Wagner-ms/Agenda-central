@@ -26,10 +26,11 @@ const nextConfig: NextConfig = {
         protocol: 'https' as const,
         hostname: 'picsum.photos',
         port: '',
-pathname: '/**',
+        pathname: '/**',
       },
     ],
   },
 };
 
+// Forçando a reinicialização para carregar assets da pasta /public
 export default nextConfig;
