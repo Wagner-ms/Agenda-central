@@ -1,8 +1,10 @@
+
 'use server';
 
 import 'server-only';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
+import { db } from '@/lib/firebase-admin'; // Importa a instância do DB inicializada
+import { FieldValue } from 'firebase-admin/firestore';
 
 // Schema for input validation with all fields required and no age limit
 const authorizationSchema = z.object({
@@ -20,39 +22,11 @@ const authorizationSchema = z.object({
 
 type AuthorizationData = z.infer<typeof authorizationSchema>;
 
-function initializeAdmin() {
-  if (!admin.apps.length) {
-    // When deployed to App Hosting, the SDK is automatically initialized.
-    // In a local environment, you need to provide credentials.
-    try {
-      admin.initializeApp();
-    } catch (e) {
-      console.error(
-        "initializeApp failed, probably because we are not in App Hosting. Let's try with creds."
-      );
-      // For local development, ensure GOOGLE_APPLICATION_CREDENTIALS is set
-      // e.g., export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-file.json"
-      if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-        });
-      } else {
-        console.warn(
-          'GOOGLE_APPLICATION_CREDENTIALS not set. Firebase Admin SDK might not work locally.'
-        );
-      }
-    }
-  }
-}
-
 export async function createAuthorizationAction(
   data: AuthorizationData
 ): Promise<{ success: boolean; error?: string; errors?: any }> {
-  // 1. Initialize Admin SDK
-  initializeAdmin();
-  const db = admin.firestore();
 
-  // 2. Validate the input data against the schema
+  // 1. Validate the input data against the schema
   const validationResult = authorizationSchema.safeParse(data);
 
   if (!validationResult.success) {
@@ -66,17 +40,17 @@ export async function createAuthorizationAction(
   }
 
   try {
-    // 3. Prepare the data for Firestore
+    // 2. Prepare the data for Firestore
     const validatedData = validationResult.data;
     const docData = {
       ...validatedData,
       status: 'pendente',
       criadoPor: 'sistema',
-      dataCadastro: admin.firestore.FieldValue.serverTimestamp(),
-      atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
+      dataCadastro: FieldValue.serverTimestamp(),
+      atualizadoEm: FieldValue.serverTimestamp(),
     };
 
-    // 4. Add the document to the 'authorizations' collection
+    // 3. Add the document to the 'authorizations' collection using the imported db instance
     await db.collection('authorizations').add(docData);
 
     return { success: true };
