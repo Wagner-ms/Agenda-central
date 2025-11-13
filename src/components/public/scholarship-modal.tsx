@@ -43,10 +43,10 @@ export function ScholarshipModal() {
           </p>
           <ul className="list-disc list-inside space-y-2">
             <li>
-              **Treinamentos de capacitação profissional 100% gratuitos**, destinados a alunos do 6° ano ao 3° ano do Ensino Médio, por meio do Projeto Aprendiz Positivo (Um projeto filantrópico do polo Portão).
+              Treinamentos de capacitação profissional 100% gratuitos, destinados a alunos do 6° ano ao 3° ano do Ensino Médio, por meio do Projeto Aprendiz Positivo (Um projeto filantrópico do polo Portão).
             </li>
             <li>
-              **Bolsas de estudo com até 80% de desconto** em diversos cursos profissionalizantes, técnicos, graduações e pós-graduações.
+              Bolsas de estudo com até 80% de desconto** em diversos cursos profissionalizantes, técnicos, graduações e pós-graduações.
             </li>
           </ul>
           <p>
