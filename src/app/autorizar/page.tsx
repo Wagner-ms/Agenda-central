@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import AuthorizationForm from '@/components/public/authorization-form';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { CheckSquare } from 'lucide-react';
+import { ScholarshipModal } from '@/components/public/scholarship-modal';
 
 function AuthorizationPageContent() {
     const searchParams = useSearchParams();
@@ -11,6 +12,7 @@ function AuthorizationPageContent() {
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4 font-form">
+            <ScholarshipModal />
             <div className="w-full max-w-2xl">
                 <Card className="shadow-2xl">
                     <CardHeader className="text-center">
