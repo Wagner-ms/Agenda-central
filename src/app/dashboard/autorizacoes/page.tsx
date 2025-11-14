@@ -1,6 +1,5 @@
 'use client';
 
-import { useCollection } from '@/firebase';
 import { AuthorizationsTable } from '@/components/dashboard/authorizations-table';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase } from '@/firebase';
@@ -10,12 +9,19 @@ import type { Authorization } from '@/lib/types';
 
 export default function AuthorizationsPage() {
   const firestore = useFirestore();
-  const [pendingAuthorizations, setPendingAuthorizations] = useState<Authorization[] | null>(null);
+  // State name is now more generic as it handles distributed authorizations
+  const [distributedAuthorizations, setDistributedAuthorizations] = useState<Authorization[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // This query now fetches leads distributed to the coordinator.
+  // In a real app, 'coord_portao' would be dynamically determined based on the logged-in user.
   const authorizationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'authorizations'), where('status', '==', 'pendente'));
+    return query(
+        collection(firestore, 'authorizations'), 
+        where('status', '==', 'distribuido'),
+        where('coordenadoraId', '==', 'coord_portao') // Filters for this specific coordinator
+    );
   }, [firestore]);
 
   useEffect(() => {
@@ -24,13 +30,12 @@ export default function AuthorizationsPage() {
         return;
     }
 
-    // Subscribe to the query, but force it to fetch from the server to bypass cache.
-    const unsubscribe = onSnapshot(authorizationsQuery, { includeMetadataChanges: true }, (snapshot) => {
+    const unsubscribe = onSnapshot(authorizationsQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Authorization));
-        setPendingAuthorizations(data);
+        setDistributedAuthorizations(data);
         setIsLoading(false);
     }, (error) => {
-        console.error("Error fetching authorizations:", error);
+        console.error("Error fetching distributed authorizations:", error);
         setIsLoading(false);
     });
 
@@ -57,10 +62,10 @@ export default function AuthorizationsPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight font-headline">Autorizações Pendentes</h1>
-        <p className="text-muted-foreground">Revise e libere novos cadastros para a equipe de telemarketing.</p>
+        <h1 className="text-2xl font-bold tracking-tight font-headline">Leads para Liberação</h1>
+        <p className="text-muted-foreground">Revise os cadastros recebidos e libere para a equipe de telemarketing.</p>
       </div>
-      <AuthorizationsTable data={pendingAuthorizations || []} />
+      <AuthorizationsTable data={distributedAuthorizations || []} />
     </div>
   );
 }

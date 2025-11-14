@@ -64,7 +64,7 @@ export function AuthorizationsTable({ data }: { data: Authorization[] }) {
 
     toast({
       title: 'Sucesso!',
-      description: `${selectedRows.length} autorizaç${selectedRows.length > 1 ? 'ões' : 'ão'} liberada${selectedRows.length > 1 ? 's' : 'a'}.`,
+      description: `${selectedRows.length} autorizaç${selectedRows.length > 1 ? 'ões' : 'ão'} liberada${selectedRows.length > 1 ? 's' : 'a'} para o telemarketing.`,
       className: 'bg-accent text-accent-foreground',
     });
     setSelectedRows([]);
@@ -88,7 +88,7 @@ export function AuthorizationsTable({ data }: { data: Authorization[] }) {
         </div>
         <Button onClick={handleRelease} disabled={selectedRows.length === 0}>
           <Send className="mr-2 h-4 w-4" />
-          Liberar ({selectedRows.length})
+          Liberar para Telemarketing ({selectedRows.length})
         </Button>
       </CardHeader>
       <CardContent>
@@ -133,7 +133,7 @@ export function AuthorizationsTable({ data }: { data: Authorization[] }) {
                 )) : (
                 <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
-                    Nenhuma autorização pendente.
+                    Nenhum cadastro para liberar no momento.
                     </TableCell>
                 </TableRow>
                 )}
