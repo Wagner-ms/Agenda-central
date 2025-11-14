@@ -67,13 +67,21 @@ function ReportDashboard({ filter }: { filter: ReportFilter }) {
         
         q = query(q, where(field, '==', filter.value));
         
-        // We are interested in all statuses to calculate the full funnel
-        q = query(q, where('status', 'in', ['agendado', 'compareceu', 'nao_compareceu', 'remarcado', 'nao_interessado', 'tel_incorreto']));
+        // This query was too complex and required a composite index.
+        // The fix is to fetch all documents for the coordinator and filter statuses client-side.
+        // q = query(q, where('status', 'in', ['agendado', 'compareceu', 'nao_compareceu', 'remarcado', 'nao_interessado', 'tel_incorreto']));
 
         return q;
     }, [firestore, filter]);
 
-    const { data: authorizations, isLoading } = useCollection(authorizationsQuery);
+    const { data: allAuthorizationsForFilter, isLoading } = useCollection(authorizationsQuery);
+
+    const authorizations = useMemo(() => {
+        if (!allAuthorizationsForFilter) return null;
+        const relevantStatuses: Status[] = ['agendado', 'compareceu', 'nao_compareceu', 'remarcado', 'nao_interessado', 'tel_incorreto'];
+        return allAuthorizationsForFilter.filter(auth => relevantStatuses.includes(auth.status));
+    }, [allAuthorizationsForFilter]);
+
 
     if (isLoading) {
         return (
@@ -86,7 +94,7 @@ function ReportDashboard({ filter }: { filter: ReportFilter }) {
         );
     }
 
-    if (!authorizations) {
+    if (!authorizations || authorizations.length === 0) {
         return (
             <div className="flex items-center justify-center h-full rounded-lg border border-dashed p-8 bg-card">
                 <div className="text-center">
