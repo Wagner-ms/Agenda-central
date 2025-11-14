@@ -13,17 +13,17 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const gestorCredentials = {
   email: 'gestor@agendacentral.com',
-  password: 'senha123',
+  password: 'Agend@Central123',
 };
 
 const coordinatorCredentials = {
   email: 'coordenadora@agendacentral.com',
-  password: 'senha123',
+  password: 'Agend@Central123',
 };
 
 const telemarketingCredentials = {
   email: 'telemarketing@agendacentral.com',
-  password: 'senha123',
+  password: 'Agend@Central123',
 };
 
 
