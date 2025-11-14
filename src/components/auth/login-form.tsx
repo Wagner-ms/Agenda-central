@@ -131,14 +131,6 @@ export default function LoginForm() {
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? <Loader2 className="animate-spin" /> : 'Entrar'}
         </Button>
-        <div className='text-center text-xs text-muted-foreground'>
-            <p>Para demonstração, use os logins abaixo:</p>
-            <div className='flex gap-2 justify-center pt-2'>
-                <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('gestor')}>Usar Gestor</Button>
-                <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('coordinator')}>Usar Coordenadora</Button>
-                <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('telemarketing')}>Usar Telemarketing</Button>
-            </div>
-        </div>
       </div>
     </form>
   );
