@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FileText, Percent, Target, XCircle, CheckCircle, Clock, PhoneOff } from 'lucide-react';
+import { Loader2, FileText, Percent, Target, XCircle, Clock, PhoneOff } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, Query } from 'firebase/firestore';
 import type { Authorization, Status } from '@/lib/types';
@@ -14,7 +14,7 @@ import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 
 type ReportFilter = {
-  type: 'school' | 'agent';
+  type: 'school' | 'agent' | 'coordinator';
   value: string;
 };
 
@@ -50,7 +50,21 @@ function ReportDashboard({ filter }: { filter: ReportFilter }) {
 
         let q: Query = collection(firestore, 'authorizations');
         
-        const field = filter.type === 'school' ? 'escola' : 'atendenteId';
+        let field: string;
+        switch(filter.type) {
+            case 'school':
+                field = 'escola';
+                break;
+            case 'agent':
+                field = 'atendenteId';
+                break;
+            case 'coordinator':
+                field = 'coordenadoraId';
+                break;
+            default:
+                return null;
+        }
+        
         q = query(q, where(field, '==', filter.value));
         
         // We are interested in all statuses to calculate the full funnel
@@ -143,9 +157,12 @@ function ReportDashboard({ filter }: { filter: ReportFilter }) {
     )
 }
 
+const coordinators = [
+    { id: 'coord_portao', name: 'Coordenador Portão' },
+];
 
 export function ReportGenerator() {
-  const [reportType, setReportType] = useState<'school' | 'agent'>('school');
+  const [reportType, setReportType] = useState<'school' | 'agent' | 'coordinator'>('school');
   const [filterValue, setFilterValue] = useState('');
   const [submittedFilter, setSubmittedFilter] = useState<ReportFilter | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -175,7 +192,7 @@ export function ReportGenerator() {
     setTimeout(() => setIsPending(false), 500); 
   };
   
-  const handleReportTypeChange = (value: 'school' | 'agent') => {
+  const handleReportTypeChange = (value: 'school' | 'agent' | 'coordinator') => {
     setReportType(value);
     setFilterValue(''); // Reset filter value when type changes
     setSubmittedFilter(null);
@@ -184,6 +201,49 @@ export function ReportGenerator() {
   const handleFilterValueChange = (value: string) => {
     setFilterValue(value);
     setSubmittedFilter(null);
+  }
+
+  const renderFilterInput = () => {
+    switch (reportType) {
+        case 'school':
+            return (
+                 <Select onValueChange={handleFilterValueChange} value={filterValue} disabled={isPending || isLoadingSchools}>
+                    <SelectTrigger id="filterValue">
+                        <SelectValue placeholder={isLoadingSchools ? "Carregando escolas..." : "Selecione uma escola"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {schoolOptions.map(school => (
+                            <SelectItem key={school} value={school}>{school}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            );
+        case 'coordinator':
+             return (
+                 <Select onValueChange={handleFilterValueChange} value={filterValue} disabled={isPending}>
+                    <SelectTrigger id="filterValue">
+                        <SelectValue placeholder={"Selecione um coordenador"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {coordinators.map(coord => (
+                            <SelectItem key={coord.id} value={coord.id}>{coord.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            );
+        case 'agent':
+             return (
+                <Input
+                    id="filterValue"
+                    value={filterValue}
+                    onChange={(e) => handleFilterValueChange(e.target.value)}
+                    placeholder={'Ex: tele_01'}
+                    disabled={isPending}
+                />
+            );
+        default:
+            return null;
+    }
   }
 
   return (
@@ -203,34 +263,16 @@ export function ReportGenerator() {
                             </SelectTrigger>
                             <SelectContent>
                             <SelectItem value="school">Por Escola</SelectItem>
+                            <SelectItem value="coordinator">Por Coordenador</SelectItem>
                             <SelectItem value="agent">Por Atendente</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="filterValue">
-                            {reportType === 'school' ? 'Nome da Escola' : 'ID do Atendente'}
+                            {reportType === 'school' ? 'Nome da Escola' : reportType === 'coordinator' ? 'Coordenador' : 'ID do Atendente'}
                         </Label>
-                        {reportType === 'school' ? (
-                            <Select onValueChange={handleFilterValueChange} value={filterValue} disabled={isPending || isLoadingSchools}>
-                                <SelectTrigger id="filterValue">
-                                    <SelectValue placeholder={isLoadingSchools ? "Carregando escolas..." : "Selecione uma escola"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {schoolOptions.map(school => (
-                                        <SelectItem key={school} value={school}>{school}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        ) : (
-                            <Input
-                                id="filterValue"
-                                value={filterValue}
-                                onChange={(e) => handleFilterValueChange(e.target.value)}
-                                placeholder={'Ex: tele_01'}
-                                disabled={isPending}
-                            />
-                        )}
+                        {renderFilterInput()}
                     </div>
                 </CardContent>
                 <CardFooter>
