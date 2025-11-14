@@ -24,7 +24,7 @@ const navItems = [
   { href: '/dashboard/autorizacoes', icon: UserCheck, label: 'Autorizações', roles: ['coordinator'] },
   { href: '/dashboard/agendamento', icon: PhoneCall, label: 'Agendamento', roles: ['telemarketing'] },
   { href: '/dashboard/agenda', icon: Calendar, label: 'Agenda', roles: ['coordinator', 'telemarketing'] },
-  { href: '/dashboard/relatorios', icon: PieChart, label: 'Relatórios', roles: ['coordinator'] },
+  { href: '/dashboard/relatorios', icon: PieChart, label: 'Relatórios', roles: ['coordinator', 'gestor'] },
 ];
 
 export function DashboardHeader() {
