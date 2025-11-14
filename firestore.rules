@@ -10,8 +10,6 @@
  * - /authorizations/{authorizationId}: Stores authorization records.
  * - /schedules/{scheduleId}: Stores scheduled appointments.
  * - /users/{userId}: Stores user data, including roles.
- * - /roles_gestor/{userId}: Presence of a document indicates gestor role.
- * - /roles_coordinator/{userId}: Presence of a document indicates coordinator role.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -44,19 +42,19 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the user has the 'gestor' role.
+     * @description Checks if the user has the 'gestor' role based on their email.
      * @return {boolean} True if the user has the 'gestor' role, false otherwise.
      */
     function isGestor() {
-      return exists(/databases/$(database)/documents/roles_gestor/$(request.auth.uid));
+      return isSignedIn() && request.auth.token.email == 'gestor@agendacentral.com';
     }
 
     /**
-     * @description Checks if the user has the 'coordinator' role.
+     * @description Checks if the user has the 'coordinator' role based on their email.
      * @return {boolean} True if the user has the 'coordinator' role, false otherwise.
      */
     function isCoordinator() {
-      return exists(/databases/$(database)/documents/roles_coordinator/$(request.auth.uid));
+      return isSignedIn() && request.auth.token.email == 'coordenadora@agendacentral.com';
     }
 
     /**
@@ -93,17 +91,15 @@ service cloud.firestore {
     }
     
     /**
-     * @description Rules for the /roles_gestor/{userId} collection.
+     * @description Role collections are no longer used for primary checks but are kept for potential future use.
+     * Access is restricted to prevent unintended modifications.
      */
     match /roles_gestor/{userId} {
-      allow read, write: if isGestor();
+      allow read, write: if false; 
     }
 
-    /**
-     * @description Rules for the /roles_coordinator/{userId} collection.
-     */
     match /roles_coordinator/{userId} {
-      allow read, write: if isCoordinator() || isGestor();
+      allow read, write: if false;
     }
   }
 }
