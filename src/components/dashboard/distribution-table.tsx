@@ -33,10 +33,9 @@ import { Share2, Loader2 } from 'lucide-react';
 import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 
-// Mock data for coordinators until a proper user management system is in place
+// Mock data for coordinators updated as per user request
 const coordinators = [
-    { id: 'coord_01', name: 'Coordenadora 1' },
-    { id: 'coord_02', name: 'Coordenadora 2' },
+    { id: 'coord_portao', name: 'Coordenador Portão' },
 ];
 
 export function DistributionTable({ data }: { data: Authorization[] }) {
