@@ -15,13 +15,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,16 +26,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Share2, Loader2 } from 'lucide-react';
 import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-
-// Mock data for coordinators updated as per user request
-const coordinators = [
-    { id: 'coord_portao', name: 'Coordenador Portão' },
-];
+import { Label } from '../ui/label';
 
 export function DistributionTable({ data }: { data: Authorization[] }) {
   const { user } = useUser();
   const [selectedRows, setSelectedRows] = React.useState<string[]>([]);
-  const [selectedCoordinator, setSelectedCoordinator] = React.useState<string>('');
+  const [coordinatorId, setCoordinatorId] = React.useState<string>('');
   const [isDistributing, setIsDistributing] = React.useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -67,8 +57,8 @@ export function DistributionTable({ data }: { data: Authorization[] }) {
         toast({ title: "Erro", description: "Não foi possível conectar ao sistema. Tente novamente.", variant: "destructive" });
         return;
     }
-    if (selectedRows.length === 0 || !selectedCoordinator) {
-        toast({ title: "Atenção", description: "Selecione pelo menos um lead e uma coordenadora.", variant: "destructive"});
+    if (selectedRows.length === 0 || !coordinatorId) {
+        toast({ title: "Atenção", description: "Selecione pelo menos um lead e informe o ID da coordenadora.", variant: "destructive"});
         return;
     }
 
@@ -80,7 +70,7 @@ export function DistributionTable({ data }: { data: Authorization[] }) {
             const docRef = doc(firestore, 'authorizations', id);
             batch.update(docRef, {
                 status: 'distribuido',
-                coordenadoraId: selectedCoordinator,
+                coordenadoraId: coordinatorId,
                 gestorId: user.uid, // Assuming the logged-in user is the gestor
                 atualizadoEm: serverTimestamp()
             });
@@ -95,7 +85,7 @@ export function DistributionTable({ data }: { data: Authorization[] }) {
         });
 
         setSelectedRows([]);
-        setSelectedCoordinator('');
+        setCoordinatorId('');
     } catch (error) {
         console.error("Error distributing leads:", error);
         toast({ title: "Erro", description: "Ocorreu um erro ao distribuir os leads.", variant: "destructive"});
@@ -121,23 +111,20 @@ export function DistributionTable({ data }: { data: Authorization[] }) {
           </CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
-          <Select 
-            value={selectedCoordinator} 
-            onValueChange={setSelectedCoordinator} 
-            disabled={isDistributing}
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Atribuir para..." />
-            </SelectTrigger>
-            <SelectContent>
-                {coordinators.map(coord => (
-                    <SelectItem key={coord.id} value={coord.id}>{coord.name}</SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1">
+             <Label htmlFor="coordinatorId" className="sr-only">ID da Coordenadora</Label>
+             <Input 
+              id="coordinatorId"
+              placeholder="ID da Coordenadora"
+              value={coordinatorId}
+              onChange={(e) => setCoordinatorId(e.target.value)}
+              disabled={isDistributing}
+              className="w-full sm:w-[220px]"
+            />
+          </div>
           <Button 
             onClick={handleDistribute} 
-            disabled={selectedRows.length === 0 || !selectedCoordinator || isDistributing}
+            disabled={selectedRows.length === 0 || !coordinatorId || isDistributing}
             className="w-full sm:w-auto"
           >
             {isDistributing ? <Loader2 className="mr-2 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}

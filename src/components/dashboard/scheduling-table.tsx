@@ -37,7 +37,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, updateDocumentNonBlocking } from '@/firebase';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 const scheduleSchema = z.object({
@@ -54,12 +54,13 @@ function ActionsMenu({ authorization }: { authorization: Authorization }) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const handleStatusUpdate = (status: Status, successMessage: string) => {
-    if (!firestore) {
+    if (!firestore || !user) {
       toast({
         title: 'Erro de Conexão',
-        description: 'Não foi possível conectar ao banco de dados.',
+        description: 'Não foi possível conectar ao banco de dados ou usuário não autenticado.',
         variant: 'destructive',
       });
       return;
@@ -67,7 +68,7 @@ function ActionsMenu({ authorization }: { authorization: Authorization }) {
     const docRef = doc(firestore, 'authorizations', authorization.id);
     updateDocumentNonBlocking(docRef, {
       status: status,
-      atendenteId: 'tele_01', // Placeholder for real user ID
+      atendenteId: user.uid,
       atualizadoEm: serverTimestamp(),
     });
 
@@ -87,10 +88,10 @@ function ActionsMenu({ authorization }: { authorization: Authorization }) {
   });
 
   function onScheduleSubmit(values: ScheduleFormValues) {
-    if (!firestore) {
+    if (!firestore || !user) {
       toast({
         title: 'Erro de Conexão',
-        description: 'Não foi possível conectar ao banco de dados.',
+        description: 'Não foi possível conectar ao banco de dados ou usuário não autenticado.',
         variant: 'destructive',
       });
       return;
@@ -102,7 +103,7 @@ function ActionsMenu({ authorization }: { authorization: Authorization }) {
       dataAgendamento: values.dataAgendamento,
       horaAgendamento: values.horaAgendamento,
       observacoes: values.observacoes,
-      atendenteId: 'tele_01', // Placeholder for real user ID
+      atendenteId: user.uid,
       atualizadoEm: serverTimestamp(),
     });
 

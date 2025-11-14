@@ -6,26 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthError, UserCredential } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-
-const gestorCredentials = {
-  email: 'gestor@agendacentral.com',
-  password: 'Agend@Central123',
-};
-
-const coordinatorCredentials = {
-  email: 'coordenadora@agendacentral.com',
-  password: 'Agend@Central123',
-};
-
-const telemarketingCredentials = {
-  email: 'telemarketing@agendacentral.com',
-  password: 'Agend@Central123',
-};
-
 
 export default function LoginForm() {
   const router = useRouter();
@@ -36,10 +20,11 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSuccessfulLogin = (userCredential: any) => {
-    if (userCredential.user.email === gestorCredentials.email) {
+  const handleSuccessfulLogin = (userCredential: UserCredential) => {
+    const userEmail = userCredential.user.email;
+    if (userEmail?.startsWith('gestor')) {
       router.push('/dashboard/distribuicao');
-    } else if (userCredential.user.email === coordinatorCredentials.email) {
+    } else if (userEmail?.startsWith('coordenadora')) {
       router.push('/dashboard/autorizacoes');
     } else {
       router.push('/dashboard/agendamento');
@@ -79,19 +64,6 @@ export default function LoginForm() {
       setIsLoading(false);
     }
   };
-
-  const fillForm = (role: 'gestor' | 'coordinator' | 'telemarketing') => {
-    if (role === 'gestor') {
-      setEmail(gestorCredentials.email);
-      setPassword(gestorCredentials.password);
-    } else if (role === 'coordinator') {
-      setEmail(coordinatorCredentials.email);
-      setPassword(coordinatorCredentials.password);
-    } else {
-      setEmail(telemarketingCredentials.email);
-      setPassword(telemarketingCredentials.password);
-    }
-  }
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">

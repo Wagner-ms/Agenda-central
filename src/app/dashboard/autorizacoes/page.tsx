@@ -2,29 +2,30 @@
 
 import { AuthorizationsTable } from '@/components/dashboard/authorizations-table';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { useFirestore, useMemoFirebase } from '@/firebase';
+import { useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useState } from 'react';
 import type { Authorization } from '@/lib/types';
 
 export default function AuthorizationsPage() {
   const firestore = useFirestore();
-  // State name is now more generic as it handles distributed authorizations
+  const { user, isUserLoading } = useUser();
   const [distributedAuthorizations, setDistributedAuthorizations] = useState<Authorization[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // This query now fetches leads distributed to the coordinator.
-  // In a real app, 'coord_portao' would be dynamically determined based on the logged-in user.
   const authorizationsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user?.uid) return null;
     return query(
         collection(firestore, 'authorizations'), 
         where('status', '==', 'distribuido'),
-        where('coordenadoraId', '==', 'coord_portao') // Filters for this specific coordinator
+        where('coordenadoraId', '==', user.uid)
     );
-  }, [firestore]);
+  }, [firestore, user?.uid]);
 
   useEffect(() => {
+    if (isUserLoading) {
+      return;
+    }
     if (!authorizationsQuery) {
         setIsLoading(false);
         return;
@@ -40,10 +41,10 @@ export default function AuthorizationsPage() {
     });
 
     return () => unsubscribe();
-  }, [authorizationsQuery]);
+  }, [authorizationsQuery, isUserLoading]);
 
 
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="space-y-4">
         <div>
