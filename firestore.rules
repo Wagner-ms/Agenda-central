@@ -64,7 +64,7 @@ service cloud.firestore {
      */
     match /authorizations/{authorizationId} {
       allow get: if isSignedIn();
-      allow list: if isGestor() || isCoordinator() || isSignedIn(); 
+      allow list: if isGestor() || isCoordinator();
       allow create: if isSignedIn();
       allow update: if isGestor() || isCoordinator() || isSignedIn();
       allow delete: if isGestor() || isCoordinator();
