@@ -14,7 +14,7 @@ import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 
 type ReportFilter = {
-  type: 'school' | 'agent' | 'coordinator';
+  type: 'school' | 'coordinator';
   value: string;
 };
 
@@ -54,9 +54,6 @@ function ReportDashboard({ filter }: { filter: ReportFilter }) {
         switch(filter.type) {
             case 'school':
                 field = 'escola';
-                break;
-            case 'agent':
-                field = 'atendenteId';
                 break;
             case 'coordinator':
                 field = 'coordenadoraId';
@@ -170,7 +167,7 @@ const coordinators = [
 ];
 
 export function ReportGenerator() {
-  const [reportType, setReportType] = useState<'school' | 'agent' | 'coordinator'>('school');
+  const [reportType, setReportType] = useState<'school' | 'coordinator'>('school');
   const [filterValue, setFilterValue] = useState('');
   const [submittedFilter, setSubmittedFilter] = useState<ReportFilter | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -200,7 +197,7 @@ export function ReportGenerator() {
     setTimeout(() => setIsPending(false), 500); 
   };
   
-  const handleReportTypeChange = (value: 'school' | 'agent' | 'coordinator') => {
+  const handleReportTypeChange = (value: 'school' | 'coordinator') => {
     setReportType(value);
     setFilterValue(''); // Reset filter value when type changes
     setSubmittedFilter(null);
@@ -239,16 +236,6 @@ export function ReportGenerator() {
                     </SelectContent>
                 </Select>
             );
-        case 'agent':
-             return (
-                <Input
-                    id="filterValue"
-                    value={filterValue}
-                    onChange={(e) => handleFilterValueChange(e.target.value)}
-                    placeholder={'Ex: tele_01'}
-                    disabled={isPending}
-                />
-            );
         default:
             return null;
     }
@@ -272,13 +259,12 @@ export function ReportGenerator() {
                             <SelectContent>
                             <SelectItem value="school">Por Escola</SelectItem>
                             <SelectItem value="coordinator">Por Coordenador</SelectItem>
-                            <SelectItem value="agent">Por Atendente</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="filterValue">
-                            {reportType === 'school' ? 'Nome da Escola' : reportType === 'coordinator' ? 'Coordenador' : 'ID do Atendente'}
+                            {reportType === 'school' ? 'Nome da Escola' : 'Coordenador'}
                         </Label>
                         {renderFilterInput()}
                     </div>
