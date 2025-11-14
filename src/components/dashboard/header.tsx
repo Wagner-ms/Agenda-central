@@ -12,6 +12,7 @@ import {
   UserCheck,
   PhoneCall,
   LogOut,
+  Share2,
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useAuth, useUser } from '@/firebase';
 
 const navItems = [
+  { href: '/dashboard/distribuicao', icon: Share2, label: 'Distribuição', roles: ['gestor'] },
   { href: '/dashboard/autorizacoes', icon: UserCheck, label: 'Autorizações', roles: ['coordinator'] },
   { href: '/dashboard/agendamento', icon: PhoneCall, label: 'Agendamento', roles: ['telemarketing'] },
   { href: '/dashboard/agenda', icon: Calendar, label: 'Agenda', roles: ['coordinator', 'telemarketing'] },
@@ -38,8 +40,24 @@ export function DashboardHeader() {
     router.push('/');
   };
   
-  const userRole = user?.email?.startsWith('coordenadora') ? 'coordinator' : 'telemarketing';
-  const dashboardHome = userRole === 'coordinator' ? '/dashboard/autorizacoes' : '/dashboard/agendamento';
+  const getUserRole = () => {
+    if (user?.email?.startsWith('gestor')) return 'gestor';
+    if (user?.email?.startsWith('coordenadora')) return 'coordinator';
+    return 'telemarketing';
+  }
+
+  const userRole = getUserRole();
+  
+  const getDashboardHome = () => {
+    switch(userRole) {
+      case 'gestor': return '/dashboard/distribuicao';
+      case 'coordinator': return '/dashboard/autorizacoes';
+      case 'telemarketing': return '/dashboard/agendamento';
+      default: return '/dashboard';
+    }
+  }
+
+  const dashboardHome = getDashboardHome();
 
 
   return (
@@ -88,12 +106,12 @@ export function DashboardHeader() {
               className="rounded-full"
             >
               <Avatar className="h-8 w-8">
-                <AvatarFallback>{userRole === 'coordinator' ? 'C' : 'T'}</AvatarFallback>
+                <AvatarFallback>{userRole.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{userRole === 'coordinator' ? 'Coordenadora' : 'Telemarketing'}</DropdownMenuLabel>
+            <DropdownMenuLabel>{userRole === 'gestor' ? 'Gestor' : userRole === 'coordinator' ? 'Coordenadora' : 'Telemarketing'}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Configurações</DropdownMenuItem>
             <DropdownMenuSeparator />

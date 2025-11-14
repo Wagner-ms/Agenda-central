@@ -2,11 +2,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CheckSquare, Calendar, PieChart, UserCheck, PhoneCall } from 'lucide-react';
+import { CheckSquare, Calendar, PieChart, UserCheck, PhoneCall, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 
 const navItems = [
+  { href: '/dashboard/distribuicao', icon: Share2, label: 'Distribuição', roles: ['gestor'] },
   { href: '/dashboard/autorizacoes', icon: UserCheck, label: 'Autorizações', roles: ['coordinator'] },
   { href: '/dashboard/agendamento', icon: PhoneCall, label: 'Agendamento', roles: ['telemarketing'] },
   { href: '/dashboard/agenda', icon: Calendar, label: 'Agenda', roles: ['coordinator', 'telemarketing'] },
@@ -16,8 +17,25 @@ const navItems = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
-  const userRole = user?.email?.startsWith('coordenadora') ? 'coordinator' : 'telemarketing';
-  const dashboardHome = userRole === 'coordinator' ? '/dashboard/autorizacoes' : '/dashboard/agendamento';
+  
+  const getUserRole = () => {
+    if (user?.email?.startsWith('gestor')) return 'gestor';
+    if (user?.email?.startsWith('coordenadora')) return 'coordinator';
+    return 'telemarketing';
+  }
+
+  const userRole = getUserRole();
+
+  const getDashboardHome = () => {
+    switch(userRole) {
+      case 'gestor': return '/dashboard/distribuicao';
+      case 'coordinator': return '/dashboard/autorizacoes';
+      case 'telemarketing': return '/dashboard/agendamento';
+      default: return '/dashboard';
+    }
+  }
+
+  const dashboardHome = getDashboardHome();
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-card sm:flex">

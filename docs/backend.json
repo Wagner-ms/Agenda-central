@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Authorization",
       "type": "object",
-      "description": "Represents an authorization record captured via QR code, managed through the coordinator and telemarketing workflows.",
+      "description": "Represents an authorization record captured via QR code, managed through the gestor, coordinator and telemarketing workflows.",
       "properties": {
         "id": {
           "type": "string",
@@ -40,7 +40,7 @@
         },
         "status": {
           "type": "string",
-          "description": "Status of the authorization (e.g., pending, released, scheduled, attended, no_show)."
+          "description": "Status of the authorization (e.g., pendente, distribuido, liberado, agendado, compareceu, nao_compareceu)."
         },
         "dataCadastro": {
           "type": "string",
@@ -65,13 +65,21 @@
           "type": "string",
           "description": "Observations or notes regarding the authorization or appointment."
         },
+        "gestorId": {
+          "type": "string",
+          "description": "Reference to the User entity representing the manager who distributed the lead. (Relationship: User 1:N Authorization)"
+        },
+        "coordenadoraId": {
+          "type": "string",
+          "description": "Reference to the User entity representing the coordinator who received the lead. (Relationship: User 1:N Authorization)"
+        },
         "atendenteId": {
           "type": "string",
           "description": "Reference to the User entity representing the telemarketing agent who scheduled the appointment. (Relationship: User 1:N Authorization)"
         },
         "criadoPor": {
           "type": "string",
-          "description": "Indicates whether the record was created by coordination or telemarketing."
+          "description": "Indicates whether the record was created by coordination, telemarketing or gestor."
         },
         "atualizadoEm": {
           "type": "string",
@@ -127,7 +135,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the system, either a coordinator or a telemarketing agent.",
+      "description": "Represents a user of the system, can be a gestor, a coordinator or a telemarketing agent.",
       "properties": {
         "id": {
           "type": "string",
@@ -144,7 +152,7 @@
         },
         "role": {
           "type": "string",
-          "description": "Role of the user (e.g., coordinator, telemarketing)."
+          "description": "Role of the user (e.g., gestor, coordinator, telemarketing)."
         }
       },
       "required": [
@@ -199,11 +207,27 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user data, including role (coordinator, telemarketing).",
+          "description": "Stores user data, including role (gestor, coordinator, telemarketing).",
           "params": [
             {
               "name": "userId",
               "description": "Unique identifier for the user."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/roles_gestor/{userId}",
+        "definition": {
+          "entityName": "roles_gestor",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection grant the 'gestor' role to the user id. Presence of the document confers the role; the document contents are ignored.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user who is a gestor."
             }
           ]
         }
@@ -225,6 +249,6 @@
         }
       }
     ],
-    "reasoning": "This Firestore data structure is designed to support the \"Agenda Central\" application, focusing on a streamlined workflow from QR code enrollment to appointment attendance. The structure emphasizes authorization independence, clarity, and scalability.\n\n**Authorization Independence:**\nAuthorization independence is achieved through denormalization. Specifically, for the `schedules` collection, the `escola` (school) and `atendenteId` fields are copied from the related `authorizations` document. This allows for secure listing of schedules based on these attributes without requiring `get()` calls to parent documents, which would violate atomicity.\n\n**QAPs (Rules are not Filters):**\nThe structure supports secure `list` operations through structural segregation and the membership map pattern (although a membership map is not directly used in this version). The separation of `authorizations` and `schedules` allows for specific security rules tailored to each entity. For example, telemarketing agents can only list `schedules` where `atendenteId` matches their user ID. Coordinators can have broader access to list all `schedules`. The `roles_coordinator` collection enables global role-based access control. Using existence over content, we grant coordinator role access.\n\nThe `authorizations` collection stores the core data captured during enrollment. The `schedules` collection stores appointment information. The `users` collection holds user data including their roles (coordinator, telemarketing).  The `roles_coordinator` collection allows for an easy way to determine if a user has coordinator privileges.\n\nThis structure facilitates the core features: QR Code Enrollment, Coordinator Panel, Telemarketing Interface, Shared Interactive Calendar, Attendance Tracking, PDF Generation, and Report Generation.\n\n**Further Considerations:**\n\n*   Consider adding indexes to the `authorizations` collection on the `status` and `atendenteId` fields to optimize queries for the coordinator and telemarketing panels.\n*   Implement server-side functions (Cloud Functions) to enforce data integrity and automate tasks such as updating the schedule when an authorization status changes to \"agendado.\""
+    "reasoning": "This Firestore data structure is designed to support the \"Agenda Central\" application, focusing on a streamlined workflow from QR code enrollment to appointment attendance. The structure emphasizes authorization independence, clarity, and scalability.\n\n**Authorization Independence:**\nAuthorization independence is achieved through denormalization. Specifically, for the `schedules` collection, the `escola` (school) and `atendenteId` fields are copied from the related `authorizations` document. This allows for secure listing of schedules based on these attributes without requiring `get()` calls to parent documents, which would violate atomicity.\n\n**QAPs (Rules are not Filters):**\nThe structure supports secure `list` operations through structural segregation and the membership map pattern (although a membership map is not directly used in this version). The separation of `authorizations` and `schedules` allows for specific security rules tailored to each entity. For example, telemarketing agents can only list `schedules` where `atendenteId` matches their user ID. Coordinators can have broader access to list all `schedules`. The `roles_coordinator` collection enables global role-based access control. Using existence over content, we grant coordinator role access.\n\nThe `authorizations` collection stores the core data captured during enrollment. The `schedules` collection stores appointment information. The `users` collection holds user data including their roles (gestor, coordinator, telemarketing).  The `roles_coordinator` collection allows for an easy way to determine if a user has coordinator privileges.\n\nThis structure facilitates the core features: QR Code Enrollment, Coordinator Panel, Telemarketing Interface, Shared Interactive Calendar, Attendance Tracking, PDF Generation, and Report Generation.\n\n**Further Considerations:**\n\n*   Consider adding indexes to the `authorizations` collection on the `status` and `atendenteId` fields to optimize queries for the coordinator and telemarketing panels.\n*   Implement server-side functions (Cloud Functions) to enforce data integrity and automate tasks such as updating the schedule when an authorization status changes to \"agendado.\""
   }
 }

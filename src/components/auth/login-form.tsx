@@ -11,6 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
+const gestorCredentials = {
+  email: 'gestor@agendacentral.com',
+  password: 'senha123',
+};
+
 const coordinatorCredentials = {
   email: 'coordenadora@agendacentral.com',
   password: 'senha123',
@@ -32,7 +37,9 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSuccessfulLogin = (userCredential: any) => {
-    if (userCredential.user.email === coordinatorCredentials.email) {
+    if (userCredential.user.email === gestorCredentials.email) {
+      router.push('/dashboard/distribuicao');
+    } else if (userCredential.user.email === coordinatorCredentials.email) {
       router.push('/dashboard/autorizacoes');
     } else {
       router.push('/dashboard/agendamento');
@@ -73,8 +80,11 @@ export default function LoginForm() {
     }
   };
 
-  const fillForm = (role: 'coordinator' | 'telemarketing') => {
-    if (role === 'coordinator') {
+  const fillForm = (role: 'gestor' | 'coordinator' | 'telemarketing') => {
+    if (role === 'gestor') {
+      setEmail(gestorCredentials.email);
+      setPassword(gestorCredentials.password);
+    } else if (role === 'coordinator') {
       setEmail(coordinatorCredentials.email);
       setPassword(coordinatorCredentials.password);
     } else {
@@ -124,6 +134,7 @@ export default function LoginForm() {
         <div className='text-center text-xs text-muted-foreground'>
             <p>Para demonstração, use os logins abaixo:</p>
             <div className='flex gap-2 justify-center pt-2'>
+                <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('gestor')}>Usar Gestor</Button>
                 <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('coordinator')}>Usar Coordenadora</Button>
                 <Button type="button" variant="link" size="sm" className="p-0 h-auto" onClick={() => fillForm('telemarketing')}>Usar Telemarketing</Button>
             </div>
