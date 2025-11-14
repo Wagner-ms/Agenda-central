@@ -1,48 +1,67 @@
 'use client';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+
 import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking, useFirestore } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
-import React from 'react';
+import { useState } from 'react';
+import { useAuth, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
-const formSchema = z.object({
-  nomeAluno: z.string().min(3, { message: 'O nome deve ter pelo menos 3 caracteres.' }),
-  idade: z.coerce.number().min(5, { message: "A idade deve ser de pelo menos 5 anos." }).max(25, { message: "A idade deve ser no máximo 25 anos." }),
+const authorizationSchema = z.object({
+  nomeAluno: z.string().min(3, { message: 'O nome do aluno é obrigatório.' }),
+  idade: z.coerce
+    .number({ invalid_type_error: 'Idade inválida.' })
+    .min(1, { message: 'A idade é obrigatória.' }),
   serie: z.string().min(1, { message: 'A série é obrigatória.' }),
   turno: z.string().min(1, { message: 'O turno é obrigatório.' }),
-  escola: z.string().min(3, { message: 'O nome da escola é obrigatório.' }),
-  nomeResponsavel: z.string().min(3, { message: 'O nome do responsável é obrigatório.' }),
-  telefone: z.string().min(10, { message: 'O telefone deve ter pelo menos 10 dígitos.' }),
-  consent: z.boolean().refine(val => val === true, {
-    message: "Você deve concordar com os termos."
-  })
+  escola: z.string().min(1, { message: 'O nome da escola é obrigatório.' }),
+  nomeResponsavel: z
+    .string()
+    .min(3, { message: 'O nome do responsável é obrigatório.' }),
+  telefone: z
+    .string()
+    .min(10, { message: 'O telefone é obrigatório.' }),
+  consent: z.boolean().refine((val) => val === true, {
+    message: 'Você precisa autorizar para continuar.',
+  }),
 });
+
+type AuthorizationFormValues = z.infer<typeof authorizationSchema>;
 
 export default function AuthorizationForm({ initialSchoolName }: { initialSchoolName: string }) {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const firestore = useFirestore();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const auth = useAuth();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+
+  const form = useForm<AuthorizationFormValues>({
+    resolver: zodResolver(authorizationSchema),
     defaultValues: {
       nomeAluno: '',
-      idade: undefined, // Start with undefined but handle it in the input
+      idade: undefined, // Start as undefined to let placeholder show
       serie: '',
       turno: '',
       escola: initialSchoolName || '',
@@ -52,44 +71,59 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    if (!firestore) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível conectar ao banco de dados.',
-        variant: 'destructive',
-      });
-      setIsSubmitting(false);
-      return;
+  async function onSubmit(data: AuthorizationFormValues) {
+    setIsLoading(true);
+    if (!firestore || !auth) {
+        toast({
+            title: 'Erro de Conexão',
+            description: 'Não foi possível conectar ao sistema. Tente novamente mais tarde.',
+            variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
     }
 
     try {
-      const authCollection = collection(firestore, 'authorizations');
-      await addDocumentNonBlocking(authCollection, {
-        ...values,
-        status: 'pendente',
-        dataCadastro: serverTimestamp(),
-        criadoPor: 'sistema',
-        atualizadoEm: serverTimestamp(),
-      });
-      
-      toast({
-        title: 'Autorização enviada!',
-        description: 'Seus dados foram enviados com sucesso e em breve entraremos em contato.',
-        className: 'bg-accent text-accent-foreground',
-      });
-      form.reset();
-    } catch (error) {
-      console.error('Error adding document: ', error);
-      toast({
-        title: 'Erro ao enviar',
-        description: 'Ocorreu um problema ao enviar seus dados. Tente novamente.',
-        variant: 'destructive',
-      });
+        // Step 1: Sign in anonymously
+        await signInAnonymously(auth);
+
+        // Step 2: Add the document to Firestore
+        await addDoc(collection(firestore, 'authorizations'), {
+            ...data,
+            status: 'pendente',
+            dataCadastro: serverTimestamp(),
+            criadoPor: 'sistema',
+            atualizadoEm: serverTimestamp(),
+        });
+
+        setIsSuccess(true);
+        toast({
+            title: 'Autorização Enviada com Sucesso!',
+            description: 'Obrigado por preencher o formulário.',
+            className: 'bg-accent text-accent-foreground',
+        });
+        form.reset();
+    } catch (error: any) {
+        console.error('Error submitting authorization: ', error);
+        toast({
+            title: 'Erro ao Enviar',
+            description: `Ocorreu um erro: ${error.message}. Por favor, tente novamente.`,
+            variant: 'destructive',
+        });
     } finally {
-        setIsSubmitting(false);
+        setIsLoading(false);
     }
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="text-center p-8 bg-green-50 rounded-lg">
+        <h3 className="text-2xl font-bold text-green-700">Formulário Enviado!</h3>
+        <p className="mt-2 text-muted-foreground">
+          Sua autorização foi registrada com sucesso. Agradecemos sua colaboração!
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -97,80 +131,82 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
-              control={form.control}
-              name="nomeAluno"
-              render={({ field }) => (
+            control={form.control}
+            name="nomeAluno"
+            render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome do Aluno</FormLabel>
-                  <FormControl>
+                <FormLabel>Nome do Aluno</FormLabel>
+                <FormControl>
                     <Input placeholder="Nome completo do aluno" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                </FormControl>
+                <FormMessage />
                 </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="idade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Idade</FormLabel>
-                  <FormControl>
-                    <Input 
-                        type="number" 
-                        placeholder="0" 
-                        {...field} 
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)} 
-                        value={field.value ?? ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="serie"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Série</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: 9º Ano" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            )}
             />
              <FormField
-              control={form.control}
-              name="turno"
-              render={({ field }) => (
+            control={form.control}
+            name="idade"
+            render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Turno</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Manhã ou Tarde" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                <FormLabel>Idade</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="Idade do aluno" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)} />
+                </FormControl>
+                <FormMessage />
                 </FormItem>
-              )}
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="serie"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Série / Ano</FormLabel>
+                <FormControl>
+                    <Input placeholder="Ex: 9º Ano, 3º Ano B" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="turno"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Turno</FormLabel>
+                 <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o turno" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="manha">Manhã</SelectItem>
+                      <SelectItem value="tarde">Tarde</SelectItem>
+                      <SelectItem value="noite">Noite</SelectItem>
+                      <SelectItem value="integral">Integral</SelectItem>
+                    </SelectContent>
+                  </Select>
+                <FormMessage />
+                </FormItem>
+            )}
             />
         </div>
-
-        <FormField
-          control={form.control}
-          name="escola"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Escola</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome da escola" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <FormField
+            control={form.control}
+            name="escola"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Escola</FormLabel>
+                <FormControl>
+                    <Input placeholder="Nome da escola" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
             control={form.control}
             name="nomeResponsavel"
@@ -178,7 +214,7 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
                 <FormItem>
                 <FormLabel>Nome do Responsável</FormLabel>
                 <FormControl>
-                    <Input placeholder="Nome de um dos pais ou responsável" {...field} />
+                    <Input placeholder="Nome completo do pai, mãe ou responsável" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -199,12 +235,11 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
             />
         </div>
 
-
         <FormField
           control={form.control}
           name="consent"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm bg-background">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -213,20 +248,22 @@ export default function AuthorizationForm({ initialSchoolName }: { initialSchool
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
-                  Termo de Consentimento
+                  Termo de Autorização
                 </FormLabel>
-                <FormDescription>
-                  Autorizo o contato da equipe da Universidade Positivo para obter mais informações sobre bolsas e oportunidades.
-                </FormDescription>
-                 <FormMessage className="pt-2" />
+                <p className="text-sm text-muted-foreground">
+                  Eu, responsável legal, autorizo a participação do aluno(a) na atividade proposta, bem como o uso de sua imagem para fins de divulgação do projeto, sem ônus.
+                </p>
+                <FormMessage />
               </div>
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="animate-spin" /> : 'Enviar Autorização'}
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Enviar Autorização'}
         </Button>
       </form>
     </Form>
   );
 }
+
+    
